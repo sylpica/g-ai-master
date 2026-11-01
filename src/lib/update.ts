@@ -1,0 +1,30 @@
+export interface ContentManifest {
+  contentVersion: string;
+  publishedAt: string;
+  syllabusVersion: string;
+  notes?: string;
+}
+
+export function isValidManifest(x: unknown): x is ContentManifest {
+  if (typeof x !== 'object' || x === null) return false;
+  const m = x as Record<string, unknown>;
+  return typeof m.contentVersion === 'string' && typeof m.publishedAt === 'string' && typeof m.syllabusVersion === 'string';
+}
+
+/**
+ * 利用者向け教材更新: 公開済みマニフェストを取得し、現在の版と比較する。
+ * 失敗した場合は旧データを維持する（呼び出し側は state を変更しない）。
+ * GitHubへの書き込みは公開アプリからは行わない（管理者向け更新は docs/UPDATE_GUIDE.md）。
+ */
+export async function checkUpdate(currentVersion: string, fetcher: typeof fetch = fetch): Promise<{ status: 'up-to-date' | 'available' | 'failed'; manifest?: ContentManifest; message: string }> {
+  try {
+    const res = await fetcher('./data/manifest.json', { cache: 'no-store' });
+    if (!res.ok) return { status: 'failed', message: `マニフェスト取得に失敗しました（HTTP ${res.status}）。現在の教材をそのまま使えます。` };
+    const data: unknown = await res.json();
+    if (!isValidManifest(data)) return { status: 'failed', message: 'マニフェストの形式が不正なため、更新を中止しました。現在の教材をそのまま使えます。' };
+    if (data.contentVersion === currentVersion) return { status: 'up-to-date', manifest: data, message: '教材は最新です。' };
+    return { status: 'available', manifest: data, message: `新しい教材 ${data.contentVersion}（${data.publishedAt}公開）があります。アプリ本体の再読み込みで反映されます。学習記録は保持されます。` };
+  } catch {
+    return { status: 'failed', message: '更新確認に失敗しました。現在の教材をそのまま使えます。' };
+  }
+}
