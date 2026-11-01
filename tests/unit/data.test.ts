@@ -66,15 +66,20 @@ describe('教材データの完全性', () => {
   });
   it('演習にルーブリックと失敗例・改善例がある（自己評価と自動評価を混同しない）', () => {
     for (const e of EXERCISES) {
+      expect(e.sources.length, e.id).toBeGreaterThanOrEqual(1);
+      for (const s of e.sources) expect(s.url, e.id).toMatch(/^https:\/\//);
       expect(e.rubric.length, e.id).toBeGreaterThanOrEqual(3);
       expect(e.failureExample.length, e.id).toBeGreaterThan(5);
       expect(e.improvementExample.length, e.id).toBeGreaterThan(5);
       expect(e.steps.length, e.id).toBeGreaterThanOrEqual(3);
     }
   });
-  it('正答位置が極端に偏っていない（先頭固定の作問慣習の検出）', () => {
+  it('正答位置が極端に偏っていない（作問位置の偏りの検出）', () => {
     const singles = publishedQuestions.filter((x) => x.type === 'single');
-    const first = singles.filter((x) => x.answer[0] === 0).length;
-    expect(first / singles.length).toBeLessThan(0.6);
+    for (let pos = 0; pos < 4; pos++) {
+      const n = singles.filter((x) => x.answer[0] === pos).length;
+      expect(n / singles.length, `position ${pos} share`).toBeLessThan(0.45);
+      expect(n, `position ${pos} count`).toBeGreaterThan(0);
+    }
   });
 });

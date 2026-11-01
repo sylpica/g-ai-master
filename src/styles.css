@@ -25,7 +25,11 @@ main{padding:20px 0 64px}
 .choice.right{border-color:var(--ok)}.choice.wrong{border-color:var(--bad)}
 .kpi{display:flex;gap:16px;flex-wrap:wrap}
 .kpi div b{font-size:1.3rem;display:block}
+.tablewrap{overflow-x:auto}
 table{border-collapse:collapse;width:100%;font-size:.92rem}
+details{border-top:1px solid var(--line);padding:8px 0}
+summary{cursor:pointer}
+summary:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 th,td{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
 input,select{font:inherit;padding:.45rem;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--fg)}
 .bar{height:10px;background:var(--line);border-radius:6px;overflow:hidden}

@@ -37,7 +37,22 @@ export function parseState(raw: string | null): AppState {
 }
 
 export function loadState(): AppState {
-  try { return parseState(localStorage.getItem(KEY)); } catch { return defaultState(); }
+  try {
+    const raw = localStorage.getItem(KEY);
+    const state = parseState(raw);
+    // 壊れたデータは上書きせず、復旧用に別キーへ退避してから初期状態で起動する
+    if (raw && state.answers.length === 0 && raw !== JSON.stringify(state) && isCorrupt(raw)) {
+      try { localStorage.setItem(`${KEY}:backup`, raw); } catch { /* 退避失敗時は何もしない */ }
+    }
+    return state;
+  } catch { return defaultState(); }
+}
+
+function isCorrupt(raw: string): boolean {
+  try {
+    const p = JSON.parse(raw) as Partial<AppState>;
+    return !(p.schemaVersion === 1 && Array.isArray(p.answers));
+  } catch { return true; }
 }
 
 export function saveState(state: AppState): { ok: boolean; error?: string } {

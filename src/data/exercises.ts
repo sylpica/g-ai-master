@@ -1,8 +1,10 @@
 import type { Exercise, ModelInfo } from '../types';
 
 const V = '2026-11-02';
+const JDLA = { title: 'JDLA G検定 公式ページ（シラバス）', url: 'https://www.jdla.org/certificate/general/' };
+const OWASP_LLM = { title: 'OWASP Top 10 for LLM Applications', url: 'https://owasp.org/www-project-top-10-for-large-language-model-applications/' };
 type P = Partial<Exercise> & Pick<Exercise, 'id' | 'syllabusId' | 'title' | 'background' | 'goal' | 'constraints' | 'steps' | 'rubric' | 'modelThinking' | 'failureExample' | 'improvementExample'>;
-const mk = (p: P): Exercise => ({ mode: 'literacy', sources: [], version: 1, status: 'published', verifiedAt: V, ...p });
+const mk = (p: P): Exercise => ({ mode: 'literacy', sources: [JDLA], version: 1, status: 'published', verifiedAt: V, ...p });
 
 export const EXERCISES: Exercise[] = [
   mk({
@@ -37,6 +39,7 @@ export const EXERCISES: Exercise[] = [
     modelThinking: '権限設計は利便性ではなく事故の上限を決める作業。最小権限から始め、必要性が確認できた範囲だけ広げる。',
     failureExample: '効率のためメール送信と削除を無承認で許可する。',
     improvementExample: '下書き作成までは自動、送信は承認、削除は二重確認とする。',
+    sources: [JDLA, OWASP_LLM],
   }),
   mk({
     id: 'ex-04', syllabusId: 'l-02', title: '同一課題に適したモデルを選ぶ',
@@ -70,6 +73,7 @@ export const EXERCISES: Exercise[] = [
     modelThinking: '文書内の指示文はデータであり命令ではない、という原則をシステム全体で守る。',
     failureExample: '取り込んだ文書の指示にAIが従うことを仕様として許す。',
     improvementExample: '文書は引用専用とし、システム指示と分離。出力前に個人情報パターンを検査する。',
+    sources: [JDLA, OWASP_LLM],
   }),
 ];
 

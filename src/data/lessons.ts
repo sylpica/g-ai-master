@@ -1,6 +1,8 @@
 import type { Lesson } from '../types';
 
 const JDLA = { title: 'JDLA G検定 公式ページ（シラバス）', url: 'https://www.jdla.org/certificate/general/' };
+const OWASP_LLM = { title: 'OWASP Top 10 for LLM Applications（プロンプトインジェクション等のリスク分類）', url: 'https://owasp.org/www-project-top-10-for-large-language-model-applications/' };
+const BUNKA_AI = { title: '文化庁「AIと著作権に関する考え方について」', url: 'https://www.bunka.go.jp/seisaku/chosakuken/aiandcopyright.html' };
 const V = '2026-11-02';
 type P = Partial<Lesson> & Pick<Lesson, 'id' | 'mode' | 'syllabusId' | 'title' | 'basic' | 'detail' | 'keyPoints' | 'pitfalls'>;
 const mk = (p: P): Lesson => ({
@@ -209,6 +211,7 @@ export const LESSONS: Lesson[] = [
     ],
     keyPoints: ['目的・文脈・形式・制約・基準', 'タスク分解と例示', 'インジェクション対策'],
     pitfalls: ['長く書けば必ず良くなる、は誤り', '外部文書の指示をそのまま実行させない'],
+    sources: [JDLA, OWASP_LLM],
   }),
   mk({
     id: 'les-l04', mode: 'literacy', syllabusId: 'l-04', title: '業務への応用と失敗パターン',
@@ -235,6 +238,7 @@ export const LESSONS: Lesson[] = [
     ],
     keyPoints: ['計画とツールのループ', '権限は最小限＋不可逆操作は承認', '状態保存とログ'],
     pitfalls: ['エージェントに無制限の書き込み権限を与えない'],
+    sources: [JDLA, OWASP_LLM],
   }),
   mk({
     id: 'les-l06', mode: 'literacy', syllabusId: 'l-06', title: '情報の信頼性：ハルシネーションと検証',
@@ -261,6 +265,7 @@ export const LESSONS: Lesson[] = [
     ],
     keyPoints: ['法・ガイドライン・自主基準の区別', '判断責任は利用者側', '時点と適用範囲を確認'],
     pitfalls: ['海外の制度をそのまま日本の話として扱わない'],
+    sources: [JDLA, BUNKA_AI],
   }),
 ];
 

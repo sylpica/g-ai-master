@@ -1,3 +1,6 @@
+/** このビルドに同梱されている教材バージョン。新しい版のアプリが読み込まれたことは、この値で判定する。 */
+export const BUNDLED_CONTENT_VERSION = '2026.11.0';
+
 export interface ContentManifest {
   contentVersion: string;
   publishedAt: string;
@@ -23,7 +26,7 @@ export async function checkUpdate(currentVersion: string, fetcher: typeof fetch 
     const data: unknown = await res.json();
     if (!isValidManifest(data)) return { status: 'failed', message: 'マニフェストの形式が不正なため、更新を中止しました。現在の教材をそのまま使えます。' };
     if (data.contentVersion === currentVersion) return { status: 'up-to-date', manifest: data, message: '教材は最新です。' };
-    return { status: 'available', manifest: data, message: `新しい教材 ${data.contentVersion}（${data.publishedAt}公開）があります。アプリ本体の再読み込みで反映されます。学習記録は保持されます。` };
+    return { status: 'available', manifest: data, message: `新しい教材 ${data.contentVersion}（${data.publishedAt}公開）があります。新しい版のアプリが公開されている場合は再読み込みで反映されます。学習記録は保持されます。` };
   } catch {
     return { status: 'failed', message: '更新確認に失敗しました。現在の教材をそのまま使えます。' };
   }

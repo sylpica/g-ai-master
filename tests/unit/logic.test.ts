@@ -76,3 +76,40 @@ describe('update manifest', () => {
 describe('dates', () => {
   it('addDays', () => { expect(addDays('2026-01-31', 1)).toBe('2026-02-01'); });
 });
+
+describe('exam time', () => {
+  it('一時停止時間は残り時間から差し引かれない', async () => {
+    const { remainingSec, effectiveElapsedSec } = await import('../../src/lib/exam');
+    const base = {
+      id: 'e1', kind: 'short' as const, mode: 'g' as const, startedAt: '2026-11-02T00:00:00.000Z', limitSec: 900,
+      questionIds: [], answers: {}, flags: [], current: 0, status: 'in-progress' as const, strict: false,
+      pauses: [{ at: '2026-11-02T00:01:00.000Z', resumedAt: '2026-11-02T00:03:00.000Z' }],
+    };
+    const now = new Date('2026-11-02T00:05:00.000Z').getTime();
+    expect(effectiveElapsedSec(base, now)).toBe(180);
+    expect(remainingSec(base, now)).toBe(720);
+  });
+  it('停止中は時間が進まない', async () => {
+    const { remainingSec } = await import('../../src/lib/exam');
+    const base = {
+      id: 'e1', kind: 'short' as const, mode: 'g' as const, startedAt: '2026-11-02T00:00:00.000Z', limitSec: 900,
+      questionIds: [], answers: {}, flags: [], current: 0, status: 'in-progress' as const, strict: false,
+      pauses: [{ at: '2026-11-02T00:01:00.000Z' }],
+    };
+    expect(remainingSec(base, new Date('2026-11-02T01:00:00.000Z').getTime())).toBe(840);
+  });
+});
+
+describe('checkUpdate', () => {
+  it('取得失敗・形式不正では failed を返し例外を投げない', async () => {
+    const { checkUpdate } = await import('../../src/lib/update');
+    const ng = (async () => { throw new Error('net'); }) as unknown as typeof fetch;
+    expect((await checkUpdate('2026.11.0', ng)).status).toBe('failed');
+    const bad = (async () => ({ ok: true, json: async () => ({ x: 1 }) })) as unknown as typeof fetch;
+    expect((await checkUpdate('2026.11.0', bad)).status).toBe('failed');
+    const same = (async () => ({ ok: true, json: async () => ({ contentVersion: '2026.11.0', publishedAt: '2026-11-02', syllabusVersion: 'G' }) })) as unknown as typeof fetch;
+    expect((await checkUpdate('2026.11.0', same)).status).toBe('up-to-date');
+    const newer = (async () => ({ ok: true, json: async () => ({ contentVersion: '2026.12.0', publishedAt: '2026-12-01', syllabusVersion: 'G' }) })) as unknown as typeof fetch;
+    expect((await checkUpdate('2026.11.0', newer)).status).toBe('available');
+  });
+});
