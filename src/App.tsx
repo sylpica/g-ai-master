@@ -68,11 +68,11 @@ export default function App() {
 
   return (
     <>
-      <a href="#main" className="muted">本文へスキップ</a>
+      <a href="#main" className="skip">本文へスキップ</a>
       <header className="top"><div className="wrap">
         <div className="top-in">
           <span className="logo">AI総合学習</span>
-          <div role="group" aria-label="学習モード">
+          <div role="group" aria-label="学習モード" className="seg">
             <button className={state.mode === 'g' ? 'primary' : ''} aria-pressed={state.mode === 'g'} onClick={() => { upd((s) => { s.mode = 'g'; return s; }); setView('home'); setLessonId(null); }}>G検定取得</button>{' '}
             <button className={state.mode === 'literacy' ? 'primary' : ''} aria-pressed={state.mode === 'literacy'} onClick={() => { upd((s) => { s.mode = 'literacy'; return s; }); setView('literacy'); setLessonId(null); }}>AI教養</button>
           </div>
@@ -92,6 +92,27 @@ export default function App() {
         ) : view === 'home' ? (
           <section>
             <h1>{state.mode === 'g' ? 'G検定取得' : 'AI教養'} ダッシュボード</h1>
+            {activeExam && <div className="card"><h2>中断中の模擬試験</h2><p>{activeExam.kind}／{activeExam.questionIds.length}問／{activeExam.pauses.length}回中断</p><button className="primary touch" onClick={() => setView('exam')}>再開する</button></div>}
+            {(() => {
+              const gLessons = publishedLessons.filter((l) => l.mode === 'g');
+              const gDone = state.lessonsDone.filter((id) => gLessons.some((l) => l.id === id)).length;
+              const next = due.length > 0
+                ? { title: `復習が${due.length}問たまっています`, body: '期限の来た問題から先に片付けると、記憶の定着効率が上がります。', label: '復習をはじめる', view: 'review' as View }
+                : gDone < gLessons.length
+                  ? { title: '教材の続きを学びましょう', body: `G教材は ${gDone}／${gLessons.length} 件が学習済みです。教材で概念を押さえてから演習に進む流れが基本です。`, label: '教材を開く', view: 'lessons' as View }
+                  : state.answers.length < 20
+                    ? { title: '演習でアウトプットしましょう', body: '教材は一通り学習済みです。演習で初見正答率を測りましょう。', label: '演習をはじめる', view: 'practice' as View }
+                    : { title: '模擬試験に挑戦しましょう', body: '本番形式で時間配分と弱点を確認できます。', label: '模擬試験を開く', view: 'exam' as View };
+              return <div className="card next"><h2>次にやること：{next.title}</h2><p>{next.body}</p><button className="primary touch" onClick={() => setView(next.view)}>{next.label}</button></div>;
+            })()}
+            <div className="card"><h2>学習の流れ</h2>
+              <ol className="flow">
+                <li><button onClick={() => setView('lessons')}><b>教材</b><span>学習済み {state.lessonsDone.filter((id) => publishedLessons.some((l) => l.id === id && l.mode === 'g')).length}／{publishedLessons.filter((l) => l.mode === 'g').length}件</span></button></li>
+                <li><button onClick={() => setView('practice')}><b>演習</b><span>累計 {state.answers.length}問に回答</span></button></li>
+                <li><button onClick={() => setView('review')}><b>復習</b><span>期限の来た問題 {due.length}問</span></button></li>
+                <li><button onClick={() => setView('exam')}><b>模擬試験</b><span>提出済み {state.exams.filter((e) => e.status === 'submitted').length}回</span></button></li>
+              </ol>
+            </div>
             <div className="card"><div className="kpi">
               <div>今日の復習<b>{due.length}問</b></div>
               <div>累計回答<b>{state.answers.length}問</b></div>
@@ -110,15 +131,14 @@ export default function App() {
                 <p className="muted">学習時間は回答にかかった時間からの概算です。</p>
               </div>;
             })()}
-            <p className="muted">{ready.note}</p>
-            {ready.reached95 && <p className="ok">到達基準（初見95%以上・模試30問以上で95%以上・網羅90%以上）を満たしています。</p>}
             </div>
-            {activeExam && <div className="card"><h2>中断中の模擬試験</h2><p>{activeExam.kind}／{activeExam.questionIds.length}問／{activeExam.pauses.length}回中断</p><button className="primary touch" onClick={() => setView('exam')}>再開する</button></div>}
             <div className="card"><h2>弱点分野（正答率の低い順）</h2>
               {stats.length === 0 ? <p className="muted">まだ回答記録がありません。演習から始めましょう。</p> : (
                 <ul>{stats.slice(0, 3).map((f) => <li key={f.syllabusId}>{syllabusById(f.syllabusId)?.chapter}：{pct(f.accuracy)}（{f.total}問）</li>)}</ul>)}
             </div>
-            <div className="card"><h2>教材の更新情報</h2>
+            <div className="card note"><h2>到達度と教材について</h2>
+              <p className="muted">{ready.note}</p>
+              {ready.reached95 && <p className="ok">到達基準（初見95%以上・模試30問以上で95%以上・網羅90%以上）を満たしています。</p>}
               <p>教材バージョン：{state.contentVersion}{state.lastUpdateCheck ? `／最終確認：${state.lastUpdateCheck.at.slice(0, 10)}（${state.lastUpdateCheck.result}）` : ''}</p>
               <button onClick={() => setView('settings')}>更新を確認する</button>
             </div>
@@ -139,7 +159,7 @@ export default function App() {
               <div>初見正答率<b>{pct(ready.firstSeenAccuracy)}</b></div>
               <div>模試正答率<b>{pct(ready.examAccuracy)}</b></div>
               <div>シラバス網羅<b>{pct(ready.coverage)}</b></div>
-            </div><p className="muted">{ready.note} 記録が少ない段階の指標は不確実性が大きいため、傾向として読んでください。</p></div>
+            </div></div>
             <div className="card"><h2>解答時間</h2>
               {(() => { const timed = state.answers.filter((a) => a.seconds > 0); const avg = timed.length ? Math.round(timed.reduce((acc, a) => acc + a.seconds, 0) / timed.length) : null;
                 return <p>{avg === null ? 'まだ計測できる回答記録がありません。' : `平均 ${avg}秒／問（計測対象 ${timed.length}問）。模試では1問あたりの目安時間と比較して、時間配分の傾向を確認できます。`}</p>; })()}
@@ -150,6 +170,7 @@ export default function App() {
               {state.exams.filter((e) => e.status === 'submitted').length === 0 ? <p className="muted">まだ提出済みの模試がありません。</p> :
                 <ul>{state.exams.filter((e) => e.status === 'submitted').map((e) => <li key={e.id}>{e.submittedAt?.slice(0, 10)} {e.kind} {e.questionIds.length}問／中断{e.pauses.length}回{e.strict ? '' : '（本番条件とは異なる記録）'}</li>)}</ul>}
             </div>
+            <div className="card note"><h2>指標の読み方</h2><p className="muted">{ready.note} 記録が少ない段階の指標は不確実性が大きいため、傾向として読んでください。公式の合格点・得点算出方法は非公開のため、このアプリでは得点換算や合格確率は表示しません。</p></div>
           </section>
         ) : view === 'literacy' ? (
           <LiteracyView onOpen={setLessonId} state={state} upd={upd} />
@@ -409,11 +430,11 @@ function LiteracyView({ onOpen, state, upd }: { onOpen: (id: string) => void; st
       })}
       {tab === 'models' && (
         <div className="card"><h2>主要モデルの比較（観点）</h2>
-          <p className="muted">性能の絶対的な序列は示しません。料金・機能は変化するため、各サービスの公式ページで確認時点の条件を確認してください。古い情報は比較から外し、版ごとに差し替えます。</p>
           <h3>比較の評価軸（実測するときの観点）</h3>
           <p>文章生成／推論／数学／プログラミング／情報検索／長文処理／画像理解／音声処理／マルチモーダル対応／エージェント用途／日本語能力／処理速度／料金／利用制限／プライバシー／セキュリティ／信頼性／用途適性。ベンチマークの数字は、評価方法・評価日時・モデルのバージョンを記録したうえで、自タスクの実測と組み合わせて読みます。</p>
           <div className="tablewrap"><table><thead><tr><th>サービス</th><th>強み（概要）</th><th>制約</th><th>料金</th><th>プライバシー</th><th>適した用途</th><th>確認日</th></tr></thead>
             <tbody>{MODEL_INFOS.map((m) => <tr key={m.id}><td><a href={m.source.url} target="_blank" rel="noreferrer">{m.name}</a><br /><span className="muted">{m.vendor}</span></td><td>{m.strengths}</td><td>{m.limits}</td><td>{m.pricingNote}</td><td>{m.privacyNote}</td><td>{m.bestFor}</td><td>{m.asOf}</td></tr>)}</tbody></table></div>
+          <p className="muted">性能の絶対的な序列は示しません。料金・機能は変化するため、各サービスの公式ページで確認時点の条件を確認してください。古い情報は比較から外し、版ごとに差し替えます。</p>
         </div>
       )}
     </section>
