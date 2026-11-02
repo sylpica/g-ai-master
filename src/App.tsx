@@ -188,7 +188,7 @@ function LessonsView({ mode, state, onOpen, upd }: { mode: Mode; state: AppState
   const [bmOnly, setBmOnly] = useState(false);
   const syllabus = mode === 'g' ? G_SYLLABUS : LITERACY_SYLLABUS;
   const lessons = publishedLessons.filter((l) => l.mode === mode
-    && (!q || l.title.includes(q) || l.keyPoints.some((k) => k.includes(q)) || (syllabusById(l.syllabusId)?.chapter.includes(q) ?? false))
+    && (!q || l.title.includes(q) || l.keyPoints.some((k) => k.includes(q)) || l.basic.some((p) => p.includes(q)) || l.detail.some((p) => p.includes(q)) || (syllabusById(l.syllabusId)?.chapter.includes(q) ?? false))
     && (!bmOnly || state.bookmarks.includes(`lesson:${l.id}`)));
   const accByField = new Map<string, number>();
   for (const f of fieldStats(state.answers, publishedQuestions)) if (f.accuracy !== null) accByField.set(f.syllabusId, f.accuracy);
@@ -204,6 +204,7 @@ function LessonsView({ mode, state, onOpen, upd }: { mode: Mode; state: AppState
         <label>学習順序 <select value={state.settings.order} onChange={(e) => upd((s) => { s.settings.order = e.target.value as AppState['settings']['order']; return s; })}>
           <option value="syllabus">公式シラバス順</option><option value="recommended">推奨順（前提知識から）</option>
           <option value="weak">弱点優先（分析を参照）</option><option value="free">自由学習</option></select></label></p>
+      {lessons.length === 0 && <p className="muted" role="status">該当する教材がありません。検索語や「ブックマークのみ」を変えてお試しください。</p>}
       {syllabus.map((node) => {
         const ls = ordered.filter((l) => l.syllabusId === node.id);
         if (q && ls.length === 0) return null;

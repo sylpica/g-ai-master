@@ -83,3 +83,20 @@ describe('教材データの完全性', () => {
     }
   });
 });
+
+describe('出典の裏付け（二重監査）', () => {
+  it('公開問題は原則2件以上の出典を持つ（一次情報が単独で存在しない標準フロー問題3件のみ例外として明示）', () => {
+    const EXCEPTIONS = ['q-g06-11', 'q-g06-20', 'q-g06-21']; // 音声処理フロー: JDLAシラバス＋内容監査で照合済み。docs/AUDIT_DUAL_MUSE.md に記録
+    for (const q of QUESTIONS.filter((x) => x.status === 'published')) {
+      if (EXCEPTIONS.includes(q.id)) { expect(q.sources.length).toBeGreaterThanOrEqual(1); continue; }
+      expect(q.sources.length, q.id).toBeGreaterThanOrEqual(2);
+    }
+  });
+  it('失効した内閣府PDF（aistrategy2019.pdf）を出典に含まない', () => {
+    for (const q of QUESTIONS) for (const s of q.sources) expect(s.url).not.toContain('aistrategy2019');
+    for (const l of LESSONS) for (const s of l.sources) expect(s.url).not.toContain('aistrategy2019');
+  });
+  it('全教材が2件以上の出典を持つ', () => {
+    for (const l of LESSONS.filter((x) => x.status === 'published')) expect(l.sources.length, l.id).toBeGreaterThanOrEqual(2);
+  });
+});

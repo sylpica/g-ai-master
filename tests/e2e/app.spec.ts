@@ -93,3 +93,18 @@ test('モバイル幅で横スクロールが発生しない', async ({ page }) 
   const overflow2 = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow2).toBeLessThanOrEqual(0);
 });
+
+test('教材検索とブックマーク絞り込みが使える', async ({ page }) => {
+  await page.goto('/');
+  await page.getByLabel('主要メニュー').getByRole('button', { name: '教材' }).click();
+  const search = page.locator('label', { hasText: '教材を検索' }).locator('input');
+  await search.fill('畳み込み');
+  await expect(page.locator('main')).toContainText('要素技術'); // 本文（基礎・詳細解説）も検索対象であることの確認
+  await search.fill('存在しない教材XYZ');
+  await expect(page.locator('main')).toContainText('該当する教材がありません');
+  await search.fill('');
+  await page.getByLabel('ブックマークのみ').check();
+  await expect(page.locator('main')).toContainText('該当する教材がありません');
+  await page.getByLabel('ブックマークのみ').uncheck();
+  await expect(page.locator('main')).toContainText('要素技術');
+});

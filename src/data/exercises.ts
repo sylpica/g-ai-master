@@ -99,7 +99,7 @@ export const MODEL_INFOS: ModelInfo[] = [
   },
   {
     id: 'mi-gemini', name: 'Gemini', vendor: 'Google', asOf: V,
-    source: { title: 'Google Gemini 公式サイト', url: 'https://gemini.google.com/' },
+    source: { title: 'Google AI for Developers（Gemini公式ドキュメント）', url: 'https://ai.google.dev/' },
     strengths: 'マルチモーダル処理とGoogleサービスとの連携に特徴があるサービス。',
     limits: 'モデルとプランにより利用上限・機能が異なる。',
     pricingNote: '料金・プランは変更されるため公式ページで確認（本表では数値を固定しない）。',

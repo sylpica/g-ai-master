@@ -5,8 +5,22 @@ const OWASP_LLM = { title: 'OWASP Top 10 for LLM Applications（プロンプト�
 const BUNKA_AI = { title: '文化庁「AIと著作権に関する考え方について」', url: 'https://www.bunka.go.jp/seisaku/chosakuken/aiandcopyright.html' };
 const V = '2026-11-02';
 type P = Partial<Lesson> & Pick<Lesson, 'id' | 'mode' | 'syllabusId' | 'title' | 'basic' | 'detail' | 'keyPoints' | 'pitfalls'>;
+const SEP_AI = { title: 'Stanford Encyclopedia of Philosophy: Artificial Intelligence', url: 'https://plato.stanford.edu/entries/artificial-intelligence/' };
+const SKLEARN = { title: 'scikit-learn User Guide（機械学習手法の公式ドキュメント）', url: 'https://scikit-learn.org/stable/user_guide.html' };
+const NIST_HB = { title: 'NIST/SEMATECH e-Handbook of Statistical Methods', url: 'https://www.itl.nist.gov/div898/handbook/' };
+const GL_PAGE = { title: '総務省・経済産業省「AI事業者ガイドライン」掲載ページ', url: 'https://www.soumu.go.jp/main_sosiki/kenkyu/ai_network/02ryutsu20_04000019.html' };
+const OECD_AI = { title: 'OECD AI Principles', url: 'https://www.oecd.org/en/topics/sub-issues/ai-principles.html' };
+const ATTN = { title: 'Vaswani et al. "Attention Is All You Need" (arXiv:1706.03762)', url: 'https://arxiv.org/abs/1706.03762' };
+const LESSON_CH: Record<string, { title: string; url: string }[]> = {
+  'g-01': [SEP_AI], 'g-02': [SEP_AI], 'g-03': [SKLEARN], 'g-04': [SKLEARN],
+  'g-05': [ATTN], 'g-06': [SKLEARN],
+  'g-07': [GL_PAGE], 'g-08': [NIST_HB], 'g-10': [OECD_AI, GL_PAGE],
+  'l-01': [ATTN], 'l-02': [GL_PAGE], 'l-04': [GL_PAGE],
+  'l-06': [GL_PAGE], 'l-07': [OECD_AI, GL_PAGE],
+};
 const mk = (p: P): Lesson => ({
-  sources: [JDLA], version: 1, status: 'published', createdAt: V, verifiedAt: V, reviewBy: '2027-05-02', ...p,
+  version: 1, status: 'published', createdAt: V, verifiedAt: V, reviewBy: '2027-05-02', ...p,
+  sources: [...(p.sources ?? [JDLA]), ...(LESSON_CH[p.syllabusId] ?? [])].filter((s, i, a) => a.findIndex((x) => x.url === s.url) === i),
 });
 
 export const LESSONS: Lesson[] = [
@@ -164,7 +178,7 @@ export const LESSONS: Lesson[] = [
     ],
     keyPoints: ['公平性・透明性・責任', 'データバイアス', 'リスクベースの規制とガイドラインの違い'],
     pitfalls: ['ガイドラインと法律（ハードロー）を混同しない'],
-    sources: [JDLA, { title: '内閣府「人間中心のAI社会原則」', url: 'https://www8.cao.go.jp/cstp/ai/aistrategy2019.pdf' }],
+    sources: [JDLA, { title: '内閣府「人間中心のAI社会原則」', url: 'https://www.cas.go.jp/jp/seisaku/jinkouchinou/pdf/aigensoku.pdf' }],
   }),
   // ---- AI教養 ----
   mk({
