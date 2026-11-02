@@ -100,3 +100,21 @@ describe('出典の裏付け（二重監査）', () => {
     for (const l of LESSONS.filter((x) => x.status === 'published')) expect(l.sources.length, l.id).toBeGreaterThanOrEqual(2);
   });
 });
+
+describe('ニュースデータ', () => {
+  it('必須項目・日付形式・https出典・ID一意・新しい順', async () => {
+    const { NEWS_ITEMS } = await import('../../src/data/news');
+    expect(NEWS_ITEMS.length).toBeGreaterThan(0);
+    const ids = new Set<string>();
+    for (const n of NEWS_ITEMS) {
+      expect(n.title.length).toBeGreaterThan(0);
+      expect(n.summary.length).toBeGreaterThan(20);
+      expect(n.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(n.addedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(n.source.url).toMatch(/^https:\/\//);
+      expect(ids.has(n.id)).toBe(false); ids.add(n.id);
+    }
+    const dates = NEWS_ITEMS.map((n) => n.date);
+    expect(dates).toEqual([...dates].sort().reverse());
+  });
+});

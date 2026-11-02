@@ -108,3 +108,12 @@ test('教材検索とブックマーク絞り込みが使える', async ({ page 
   await page.getByLabel('ブックマークのみ').uncheck();
   await expect(page.locator('main')).toContainText('要素技術');
 });
+
+test('AI教養のニュースタブに最新情報が表示される', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('group', { name: '学習モード' }).getByRole('button', { name: 'AI教養' }).click();
+  await page.getByRole('button', { name: 'ニュース' }).click();
+  await expect(page.locator('main')).toContainText('人工知能基本計画');
+  await expect(page.locator('main')).toContainText('超重要');
+  await expect(page.locator('main')).toContainText('最終取り込み');
+});

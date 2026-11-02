@@ -4,6 +4,7 @@ import { G_SYLLABUS, LITERACY_SYLLABUS, syllabusById } from './data/syllabus';
 import { publishedLessons } from './data/lessons';
 import { publishedQuestions } from './data/questions';
 import { EXERCISES, MODEL_INFOS } from './data/exercises';
+import { NEWS_ITEMS, NEWS_LAST_ADDED } from './data/news';
 import { loadState, saveState, exportState, defaultState } from './lib/storage';
 import { judge, todayStr } from './lib/scoring';
 import { nextReview, dueCards } from './lib/review';
@@ -410,13 +411,14 @@ function ExamView({ state, gQuestions, upd, recordAnswer }: { state: AppState; g
 }
 
 function LiteracyView({ onOpen, state, upd }: { onOpen: (id: string) => void; state: AppState; upd: (fn: (s: AppState) => AppState) => void }) {
-  const [tab, setTab] = useState<'lessons' | 'exercises' | 'models'>('lessons');
+  const [tab, setTab] = useState<'lessons' | 'exercises' | 'models' | 'news'>('lessons');
   return (
     <section><h1>AI教養</h1>
       <p role="group" aria-label="AI教養の表示切替">
         <button className={tab === 'lessons' ? 'primary' : ''} onClick={() => setTab('lessons')}>教材</button>{' '}
         <button className={tab === 'exercises' ? 'primary' : ''} onClick={() => setTab('exercises')}>実践演習</button>{' '}
-        <button className={tab === 'models' ? 'primary' : ''} onClick={() => setTab('models')}>モデル比較</button></p>
+        <button className={tab === 'models' ? 'primary' : ''} onClick={() => setTab('models')}>モデル比較</button>{' '}
+        <button className={tab === 'news' ? 'primary' : ''} onClick={() => setTab('news')}>ニュース</button></p>
       {tab === 'lessons' && LITERACY_SYLLABUS.map((node) => (
         <div key={node.id} className="card"><h2>{node.chapter}</h2><p className="muted">{node.title}</p>
           {publishedLessons.filter((l) => l.syllabusId === node.id).map((l) => <p key={l.id}><button className="touch" onClick={() => onOpen(l.id)}>{l.title}</button> {state.lessonsDone.includes(l.id) ? <span className="ok">学習済み</span> : ''}</p>)}
@@ -444,6 +446,20 @@ function LiteracyView({ onOpen, state, upd }: { onOpen: (id: string) => void; st
           <div className="tablewrap"><table><thead><tr><th>サービス</th><th>強み（概要）</th><th>制約</th><th>料金</th><th>プライバシー</th><th>適した用途</th><th>確認日</th></tr></thead>
             <tbody>{MODEL_INFOS.map((m) => <tr key={m.id}><td><a href={m.source.url} target="_blank" rel="noreferrer">{m.name}</a><br /><span className="muted">{m.vendor}</span></td><td>{m.strengths}</td><td>{m.limits}</td><td>{m.pricingNote}</td><td>{m.privacyNote}</td><td>{m.bestFor}</td><td>{m.asOf}</td></tr>)}</tbody></table></div>
           <p className="muted">性能の絶対的な序列は示しません。料金・機能は変化するため、各サービスの公式ページで確認時点の条件を確認してください。古い情報は比較から外し、版ごとに差し替えます。</p>
+        </div>
+      )}
+      {tab === 'news' && (
+        <div>
+          <p className="muted">公式発表・公的機関などの一次情報だけを、3日に1回程度の頻度で確認して追加しています（最終取り込み：{NEWS_LAST_ADDED}）。超重要なものは「超重要」と表示し、内容を確認したうえで問題や教材にも取り込みます。</p>
+          {NEWS_ITEMS.map((n) => (
+            <div key={n.id} className="card">
+              <p className="muted">{n.date}／{n.category}{n.importance === 'major' ? '／超重要' : ''}</p>
+              <h2>{n.title}</h2>
+              <p>{n.summary}</p>
+              {n.incorporated && <p><b>学習への取り込み：</b>{n.incorporated}</p>}
+              <p className="muted">出典：<a href={n.source.url} target="_blank" rel="noreferrer">{n.source.title}</a></p>
+            </div>
+          ))}
         </div>
       )}
     </section>

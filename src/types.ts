@@ -89,6 +89,25 @@ export interface ModelInfo {
   bestFor: string;
 }
 
+export type NewsCategory = 'モデル' | 'サービス動向' | '制度・政策' | '研究' | 'セキュリティ' | '試験情報';
+
+export interface NewsItem {
+  id: string;
+  /** 発表・公表日（YYYY-MM-DD） */
+  date: string;
+  title: string;
+  /** 何が起きたか＋学習上の意味。一次情報で確認できる範囲だけを書く */
+  summary: string;
+  category: NewsCategory;
+  /** major = 超重要（クイズや教材へ取り込みを検討する水準） */
+  importance: 'normal' | 'major';
+  source: SourceRef;
+  /** このアプリへ取り込んだ日（YYYY-MM-DD） */
+  addedAt: string;
+  /** 超重要ニュースを他メニューへ取り込んだ内容（例: 問題を追加） */
+  incorporated?: string;
+}
+
 export interface AnswerRecord {
   questionId: string;
   selected: number[];
