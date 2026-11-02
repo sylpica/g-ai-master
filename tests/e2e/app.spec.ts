@@ -39,7 +39,7 @@ test('演習で回答すると正誤と解説が表示され、記録が復元�
 test('短縮模試：開始・一時停止・再開・提出・結果表示', async ({ page }) => {
   page.on('dialog', (d) => d.accept());
   await page.getByLabel('主要メニュー').getByRole('button', { name: '模擬試験' }).click();
-  await expect(page.getByText(/現在は利用できません/)).toBeVisible(); // フル模試は不足を明示して無効
+  await expect(page.locator('.card').filter({ has: page.getByRole('heading', { name: 'フル模擬試験' }) }).getByRole('button', { name: '開始' })).toBeEnabled(); // G300問到達でフル模試が有効
   await page.locator('.card').filter({ has: page.getByRole('heading', { name: '短縮模擬試験' }) }).getByRole('button', { name: '開始' }).click();
   await expect(page.getByText(/残り時間/)).toBeVisible();
   await page.locator('.choice').first().click();
@@ -70,6 +70,18 @@ test('教材の更新確認が結果を表示する', async ({ page }) => {
   await page.getByLabel('主要メニュー').getByRole('button', { name: '設定・更新' }).click();
   await page.getByRole('button', { name: '教材の更新を確認' }).click();
   await expect(page.getByRole('status')).toContainText(/教材は最新です|新しい教材|失敗しました/);
+});
+
+test('演習のシャッフルを切り替えて回答できる', async ({ page }) => {
+  await page.getByLabel('主要メニュー').getByRole('button', { name: '演習' }).click();
+  const toggle = page.getByRole('button', { name: /出題順/ });
+  await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: '再シャッフル' })).toBeVisible();
+  await page.locator('.choice').first().click();
+  await page.getByRole('button', { name: '回答する' }).click();
+  await expect(page.getByRole('heading', { name: '基礎解説' })).toBeVisible();
 });
 
 test('モバイル幅で横スクロールが発生しない', async ({ page }) => {

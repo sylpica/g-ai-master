@@ -73,13 +73,13 @@ export default function App() {
         <div className="top-in">
           <span className="logo">AI総合学習</span>
           <div role="group" aria-label="学習モード" className="seg">
-            <button className={state.mode === 'g' ? 'primary' : ''} aria-pressed={state.mode === 'g'} onClick={() => { upd((s) => { s.mode = 'g'; return s; }); setView('home'); setLessonId(null); }}>G検定取得</button>{' '}
+            <button className={state.mode === 'g' ? 'primary' : ''} aria-pressed={state.mode === 'g'} onClick={() => { upd((s) => { s.mode = 'g'; return s; }); setView('home'); setLessonId(null); }}>G検定取得</button>
             <button className={state.mode === 'literacy' ? 'primary' : ''} aria-pressed={state.mode === 'literacy'} onClick={() => { upd((s) => { s.mode = 'literacy'; return s; }); setView('literacy'); setLessonId(null); }}>AI教養</button>
           </div>
+          <nav className="main" aria-label="主要メニュー">
+            {nav.map((n) => <button key={n.id} aria-current={view === n.id ? 'page' : undefined} onClick={() => setView(n.id)}>{n.label}</button>)}
+          </nav>
         </div>
-        <nav className="main" aria-label="主要メニュー">
-          {nav.map((n) => <button key={n.id} aria-current={view === n.id ? 'page' : undefined} onClick={() => setView(n.id)}>{n.label}</button>)}
-        </nav>
       </div></header>
       <main id="main" className="wrap">
         {saveErr && <p role="alert" className="bad">{saveErr}</p>}
@@ -177,6 +177,7 @@ export default function App() {
         ) : (
           <SettingsView state={state} upd={upd} />
         )}
+        <footer>本アプリはJDLA（日本ディープラーニング協会）の公式アプリではありません。試験制度とシラバスはJDLA公式ページで最新の情報を確認してください。学習記録はこのブラウザ内にのみ保存されます。</footer>
       </main>
     </>
   );
@@ -246,8 +247,12 @@ function PracticeView({ questions, onAnswer, reviewMode }: { mode: Mode; questio
   const [result, setResult] = useState<boolean | null>(null);
   const [started, setStarted] = useState(Date.now());
   const [round, setRound] = useState<{ answered: string[]; correct: number }>({ answered: [], correct: 0 });
+  const [shuffleOn, setShuffleOn] = useState(false);
+  const [seed, setSeed] = useState(1);
   const pool = useMemo(() => questions.filter((x) => field === 'all' || x.syllabusId === field), [questions, field]);
-  const q = pool[idx % Math.max(pool.length, 1)];
+  const displayPool = useMemo(() => (shuffleOn ? shuffle(pool, seed) : pool), [pool, shuffleOn, seed]);
+  const q = displayPool[idx % Math.max(displayPool.length, 1)];
+  const resetRound = () => { setIdx(0); setSel([]); setResult(null); setStarted(Date.now()); setRound({ answered: [], correct: 0 }); };
   const fields = [...new Set(questions.map((x) => x.syllabusId))];
   if (questions.length === 0) return <section><h1>{reviewMode ? '今日の復習' : '演習'}</h1><p className="card">現在、対象の問題はありません。{reviewMode ? '復習期限の問題がない状態です。' : ''}</p></section>;
   const toggle = (i: number) => {
@@ -256,8 +261,10 @@ function PracticeView({ questions, onAnswer, reviewMode }: { mode: Mode; questio
   };
   return (
     <section><h1>{reviewMode ? '今日の復習' : '演習'}</h1>
-      {!reviewMode && <p><label>分野 <select value={field} onChange={(e) => { setField(e.target.value); setIdx(0); setSel([]); setResult(null); setStarted(Date.now()); setRound({ answered: [], correct: 0 }); }}>
-        <option value="all">全分野</option>{fields.map((f) => <option key={f} value={f}>{syllabusById(f)?.chapter}</option>)}</select></label></p>}
+      {!reviewMode && <p><label>分野 <select value={field} onChange={(e) => { setField(e.target.value); resetRound(); }}>
+        <option value="all">全分野</option>{fields.map((f) => <option key={f} value={f}>{syllabusById(f)?.chapter}</option>)}</select></label>{' '}
+        <button type="button" className={shuffleOn ? 'primary' : ''} aria-pressed={shuffleOn} onClick={() => { setShuffleOn(!shuffleOn); if (!shuffleOn) setSeed(Date.now()); resetRound(); }}>出題順：{shuffleOn ? 'シャッフル' : '分野順'}</button>{' '}
+        {shuffleOn && <button type="button" onClick={() => { setSeed(Date.now()); resetRound(); }}>再シャッフル</button>}</p>}
       {pool.length > 0 && round.answered.length >= pool.length && result === null ? (
         <div className="card"><h2>この範囲を1周しました</h2>
           <p>{pool.length}問中 {round.correct}問正解（{Math.round((round.correct / pool.length) * 100)}%）でした。誤答した問題は復習リストに入っています。</p>
@@ -265,10 +272,11 @@ function PracticeView({ questions, onAnswer, reviewMode }: { mode: Mode; questio
         </div>
       ) : q && <div className="card" key={q.id}>
         <p className="muted">{syllabusById(q.syllabusId)?.chapter}／難易度{q.difficulty}／{q.type === 'multi' ? '複数選択' : q.type === 'truefalse' ? '正誤判定' : '単一選択'}／回答済み {round.answered.length}／{pool.length}問</p>
+        <div className="bar" role="progressbar" aria-valuenow={pool.length ? Math.round((round.answered.length / pool.length) * 100) : 0} aria-valuemin={0} aria-valuemax={100} aria-label="この範囲の進捗" style={{ margin: '0 0 12px' }}><i style={{ width: `${pool.length ? (round.answered.length / pool.length) * 100 : 0}%` }} /></div>
         <fieldset style={{ border: 0, padding: 0, margin: 0 }}><legend><h2 style={{ display: 'inline' }}>{q.stem}</h2></legend>
         {q.choices.map((c, i) => (
           <button key={i} className={`choice touch ${sel.includes(i) ? 'sel' : ''} ${result !== null && q.answer.includes(i) ? 'right' : ''} ${result === false && sel.includes(i) && !q.answer.includes(i) ? 'wrong' : ''}`}
-            aria-pressed={sel.includes(i)} onClick={() => toggle(i)}>{String.fromCharCode(65 + i)}. {c}</button>
+            aria-pressed={sel.includes(i)} onClick={() => toggle(i)}><span>{c}</span></button>
         ))}</fieldset>
         {result === null ? (
           <button className="primary touch" disabled={sel.length === 0} onClick={() => { const c = onAnswer(q, sel, Math.round((Date.now() - started) / 1000)); setResult(c); setRound((r) => ({ answered: [...r.answered, q.id], correct: r.correct + (c ? 1 : 0) })); }}>回答する</button>
@@ -381,7 +389,7 @@ function ExamView({ state, gQuestions, upd, recordAnswer }: { state: AppState; g
             return <button key={i} className={`choice touch ${sel.includes(i) ? 'sel' : ''}`} aria-pressed={sel.includes(i)}
               disabled={paused}
               onClick={() => upd((s) => { const e = s.exams.find((x) => x.id === active.id)!; e.answers[cur.id] = cur.type === 'multi' ? (sel.includes(i) ? sel.filter((x) => x !== i) : [...sel, i]) : [i]; return s; })}>
-              {String.fromCharCode(65 + i)}. {c}</button>;
+              <span>{c}</span></button>;
           })}</fieldset>
         </>}
         <p>
