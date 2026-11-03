@@ -1,10 +1,37 @@
 import type { Lesson } from '../types';
 
 const JDLA = { title: 'JDLA G検定 公式ページ（シラバス）', url: 'https://www.jdla.org/certificate/general/' };
+const OWASP_LLM = { title: 'OWASP Top 10 for LLM Applications（プロンプトインジェクション等のリスク分類）', url: 'https://owasp.org/www-project-top-10-for-large-language-model-applications/' };
+const BUNKA_AI = { title: '文化庁「AIと著作権に関する考え方について」', url: 'https://www.bunka.go.jp/seisaku/chosakuken/aiandcopyright.html' };
 const V = '2026-11-02';
 type P = Partial<Lesson> & Pick<Lesson, 'id' | 'mode' | 'syllabusId' | 'title' | 'basic' | 'detail' | 'keyPoints' | 'pitfalls'>;
+const SEP_AI = { title: 'Stanford Encyclopedia of Philosophy: Artificial Intelligence', url: 'https://plato.stanford.edu/entries/artificial-intelligence/' };
+const SKLEARN = { title: 'scikit-learn User Guide（機械学習手法の公式ドキュメント）', url: 'https://scikit-learn.org/stable/user_guide.html' };
+const NIST_HB = { title: 'NIST/SEMATECH e-Handbook of Statistical Methods', url: 'https://www.itl.nist.gov/div898/handbook/' };
+const GL_PAGE = { title: '総務省・経済産業省「AI事業者ガイドライン」掲載ページ', url: 'https://www.soumu.go.jp/main_sosiki/kenkyu/ai_network/02ryutsu20_04000019.html' };
+const OECD_AI = { title: 'OECD AI Principles', url: 'https://www.oecd.org/en/topics/sub-issues/ai-principles.html' };
+const AI_ACT_JP = { title: 'e-Gov法令検索「人工知能関連技術の研究開発及び活用の推進に関する法律」', url: 'https://laws.e-gov.go.jp/law/507AC0000000053' };
+const PPC_GENAI = { title: '個人情報保護委員会「生成AIサービスの利用に関する注意喚起等について」', url: 'https://www.ppc.go.jp/news/careful_information/230602_AI_utilize_alert/' };
+const OPENAI_MODELS = { title: 'OpenAI API ドキュメント：Models', url: 'https://developers.openai.com/api/docs/models' };
+const CLAUDE_MODELS = { title: 'Claude ドキュメント：Models overview', url: 'https://platform.claude.com/docs/en/about-claude/models/overview' };
+const PROMPT_GUIDE = { title: 'OpenAI API ドキュメント：Prompt engineering', url: 'https://developers.openai.com/api/docs/guides/prompt-engineering' };
+const MCP_NEWS = { title: 'Anthropic: Introducing the Model Context Protocol（2024-11-25）', url: 'https://www.anthropic.com/news/model-context-protocol' };
+const MCP_SPEC = { title: 'Model Context Protocol 仕様（2025-06-18版）', url: 'https://modelcontextprotocol.io/specification/2025-06-18' };
+const ATTN = { title: 'Vaswani et al. "Attention Is All You Need" (arXiv:1706.03762)', url: 'https://arxiv.org/abs/1706.03762' };
+const LESSON_CH: Record<string, { title: string; url: string }[]> = {
+  'g-01': [SEP_AI], 'g-02': [SEP_AI], 'g-03': [SKLEARN], 'g-04': [SKLEARN],
+  'g-05': [ATTN], 'g-06': [SKLEARN],
+  'g-07': [GL_PAGE], 'g-08': [NIST_HB], 'g-10': [OECD_AI, GL_PAGE],
+  'l-01': [ATTN], 'l-04': [GL_PAGE],
+  'l-06': [GL_PAGE], 'l-07': [OECD_AI, GL_PAGE, AI_ACT_JP, PPC_GENAI],
+  'l-02': [GL_PAGE, OPENAI_MODELS, CLAUDE_MODELS], 'l-03': [PROMPT_GUIDE], 'l-05': [MCP_NEWS, MCP_SPEC],
+};
+// 2026-11-03 の二重監査で本文を拡充したAI教養の教材（検証日を更新）
+const UPDATED_1103 = new Set(['l-01', 'l-02', 'l-03', 'l-04', 'l-05', 'l-06', 'l-07']);
 const mk = (p: P): Lesson => ({
-  sources: [JDLA], version: 1, status: 'published', createdAt: V, verifiedAt: V, reviewBy: '2027-05-02', ...p,
+  version: UPDATED_1103.has(p.syllabusId) ? 2 : 1, status: 'published', createdAt: V,
+  verifiedAt: UPDATED_1103.has(p.syllabusId) ? '2026-11-03' : V, reviewBy: UPDATED_1103.has(p.syllabusId) ? '2027-05-03' : '2027-05-02', ...p,
+  sources: [...(p.sources ?? [JDLA]), ...(LESSON_CH[p.syllabusId] ?? [])].filter((s, i, a) => a.findIndex((x) => x.url === s.url) === i),
 });
 
 export const LESSONS: Lesson[] = [
@@ -162,7 +189,7 @@ export const LESSONS: Lesson[] = [
     ],
     keyPoints: ['公平性・透明性・責任', 'データバイアス', 'リスクベースの規制とガイドラインの違い'],
     pitfalls: ['ガイドラインと法律（ハードロー）を混同しない'],
-    sources: [JDLA, { title: '内閣府「人間中心のAI社会原則」', url: 'https://www8.cao.go.jp/cstp/ai/aistrategy2019.pdf' }],
+    sources: [JDLA, { title: '内閣府「人間中心のAI社会原則」', url: 'https://www.cas.go.jp/jp/seisaku/jinkouchinou/pdf/aigensoku.pdf' }],
   }),
   // ---- AI教養 ----
   mk({
@@ -177,6 +204,9 @@ export const LESSONS: Lesson[] = [
       '推論モデルは、回答前に中間の推論過程を長く展開することで、数学や論理課題の性能を高める設計のモデル群を指します。',
       'マルチモーダルモデルはテキスト以外に画像・音声等を入出力できますが、モダリティごとに得意不得意と失敗パターンが異なります。',
       'エージェントは、LLMが計画を立て、ツールを呼び出し、結果を見て次の行動を決めるループを持つ仕組みです。',
+      'コンテキストウィンドウは1回の処理で参照できるトークン数の上限です。長い資料は分割・要約・RAGで扱い、上限内でも重要な指示や根拠の置き方に注意します。',
+      '同じ指示でも出力は確率的に揺れます。生成のランダムさを調整する設定（温度など）がありますが、正確さを保証するものではありません。',
+      'RAGとファインチューニングの使い分け：更新が頻繁な知識の参照や出典の提示にはRAG、口調・形式・特定の振る舞いの定着にはファインチューニングが向きます。RAGはモデルの重みを変えません。',
     ],
     keyPoints: ['トークンと次トークン予測', 'Attentionと埋め込み', 'RAGの役割', '学習と推論の区別'],
     pitfalls: ['LLMはデータベース検索そのものではない', '流暢さと正確さは別物'],
@@ -190,6 +220,8 @@ export const LESSONS: Lesson[] = [
     detail: [
       'ベンチマークの数字は評価条件に強く依存します。自業務のタスクで小規模に試し、正確さ・速度・コストを実測することが比較の基本です。',
       '機密情報を入力してよいかは、サービスのデータ利用ポリシーと所属組織の規程の両方で決まります。個人の判断で会社の情報を入れてはいけません。',
+      '各社は、性能重視の上位モデルと、速度・費用重視の軽量モデルを並べて提供しています。大量の定型処理は軽量モデル、難しい推論は上位モデル、というように用途で使い分けます（主なモデル名はモデル比較タブに確認日付きで掲載）。',
+      '同じ会社でも、個人向けアプリ・法人向けプラン・APIで、データの扱い・利用上限・料金体系が別々に定められています。APIはトークン単位の従量課金が一般的です。',
     ],
     keyPoints: ['比較はバージョンと日時付きで', '自タスクで実測する', 'データ取扱いは公式条件で確認'],
     pitfalls: ['ベンチマーク順位＝実務性能の絶対序列、ではない'],
@@ -206,9 +238,12 @@ export const LESSONS: Lesson[] = [
       '構造化出力（JSON等の形式指定）は後段の処理や検証を容易にします。スキーマを明示し、形式違反時の扱いも決めます。',
       'プロンプトインジェクションは、外部文書内の指示文によってAIが本来の指示から逸脱させられる攻撃です。外部テキストは「データ」であって「命令」ではないと扱う設計が基本です。',
       '改善は実験として行います。条件を1つずつ変え、同じ評価課題で比較し、記録を残します。',
+      '指示の置き場所を分けます。システム側の指示（役割・制約・出力形式）と、利用者の入力やデータを区別して渡すと、意図しない指示の混入に強くなります。',
+      '評価用の入力例（典型例と境界例）と判定基準を先に用意しておくと、プロンプトやモデルを変えたときの比較が再現可能になります。',
     ],
     keyPoints: ['目的・文脈・形式・制約・基準', 'タスク分解と例示', 'インジェクション対策'],
     pitfalls: ['長く書けば必ず良くなる、は誤り', '外部文書の指示をそのまま実行させない'],
+    sources: [JDLA, OWASP_LLM],
   }),
   mk({
     id: 'les-l04', mode: 'literacy', syllabusId: 'l-04', title: '業務への応用と失敗パターン',
@@ -219,6 +254,8 @@ export const LESSONS: Lesson[] = [
     detail: [
       '研究開発では、文献の当たり付け、仮説の列挙、実験条件の候補出しに有効ですが、引用の実在確認と数値の原典確認は必須です。実在しない文献を生成する事例が知られています。',
       '効果測定は、処理時間だけでなく、修正工数と誤り率を含めて評価します。速くても直しが多ければ効果は小さいことがあります。',
+      'データ分析では、AIにコードを書かせて実行し、集計結果を元データと照合します。文章として生成された計算結果は誤りを含むことがあり、分析の前提（期間・外れ値・欠損）は人が確認します。',
+      'プログラミングでは、生成コードをテスト・レビュー・依存関係の確認に通します。AIが実在しないパッケージ名を提案することがあり、認証情報をプロンプトに含めるのは漏えいの原因になります。',
     ],
     keyPoints: ['下書きはAI、判断は人間', '引用と数値は原典確認', '効果は修正工数込みで測る'],
     pitfalls: ['AIの要約だけを読んで原文を確認しない'],
@@ -232,9 +269,12 @@ export const LESSONS: Lesson[] = [
     detail: [
       '長時間タスクでは、状態の保存、途中結果の検証、失敗時の再開地点の記録が不可欠です。ログと監査可能性がなければ、誤動作の原因追跡ができません。',
       '自動化の限界：曖昧な指示、例外処理、責任の所在は自動化できません。承認が必要な操作の線引きを先に決めます。',
+      'APIの基礎：アプリはHTTPで要求（入力・モデル名・設定）を送り、応答を受け取ります。料金と上限はトークン数や要求回数で決まることが多く、APIキーはサーバー側で管理し、ブラウザで動くコードや公開リポジトリに含めません。',
+      'MCP（Model Context Protocol）は、AIアプリとツール・データをつなぐオープンなプロトコルで、2024年11月にAnthropicが公開しました。サーバーはツール・リソース・プロンプトを提供します。接続先に与える権限と、ツール経由で入る外部テキストの扱いに注意します。',
     ],
     keyPoints: ['計画とツールのループ', '権限は最小限＋不可逆操作は承認', '状態保存とログ'],
     pitfalls: ['エージェントに無制限の書き込み権限を与えない'],
+    sources: [JDLA, OWASP_LLM],
   }),
   mk({
     id: 'les-l06', mode: 'literacy', syllabusId: 'l-06', title: '情報の信頼性：ハルシネーションと検証',
@@ -245,6 +285,8 @@ export const LESSONS: Lesson[] = [
     detail: [
       'ベンチマークを読むときは、評価データ、評価方法、実施主体、モデルのバージョン、データ汚染（評価データの学習混入）の可能性を確認します。',
       '複数の二次情報が同じ誤りを転載していることがあります。独立した情報源かどうかを見極めることが重要です。',
+      '引用文献は、書誌情報の実在と、引用内容が原文に書かれていることの両方を原典で確認します。AI自身への「実在しますか」という確認は独立した検証になりません。',
+      '数値は、出典・対象期間・定義・算出方法を確かめるまで未確認として扱います。桁の細かさや口調の確かさは正確さの根拠になりません。',
     ],
     keyPoints: ['流暢さ≠正確さ', '一次資料に遡る', '転載は独立した裏付けにならない'],
     pitfalls: ['「複数のサイトに書いてある」だけで確定としない'],
@@ -258,9 +300,12 @@ export const LESSONS: Lesson[] = [
     detail: [
       '説明責任は「誰が・何を根拠に・どう判断したか」を後から説明できる状態を保つことです。AIの出力を採用した判断でも、責任は利用する側にあります。',
       '制度は国と時期で異なります。海外サービスの利用でも、自国の法と所属組織の規程が適用される場面があります。',
+      '日本では2025年に「人工知能関連技術の研究開発及び活用の推進に関する法律」（AI推進法、令和7年法律第53号）が公布され、同年12月に人工知能基本計画が閣議決定されました。推進を目的とする法律で、EUのAI法のような罰則付きのリスク分類規制とは性格が異なります。',
+      '生成AIに個人情報を入力する場合は、利用目的の範囲内か、入力データが提供事業者側で学習などに使われないかを確認します（個人情報保護委員会が注意喚起を公表）。',
     ],
     keyPoints: ['法・ガイドライン・自主基準の区別', '判断責任は利用者側', '時点と適用範囲を確認'],
     pitfalls: ['海外の制度をそのまま日本の話として扱わない'],
+    sources: [JDLA, BUNKA_AI],
   }),
 ];
 

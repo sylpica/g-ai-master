@@ -1,8 +1,10 @@
 import type { Exercise, ModelInfo } from '../types';
 
 const V = '2026-11-02';
+const JDLA = { title: 'JDLA G検定 公式ページ（シラバス）', url: 'https://www.jdla.org/certificate/general/' };
+const OWASP_LLM = { title: 'OWASP Top 10 for LLM Applications', url: 'https://owasp.org/www-project-top-10-for-large-language-model-applications/' };
 type P = Partial<Exercise> & Pick<Exercise, 'id' | 'syllabusId' | 'title' | 'background' | 'goal' | 'constraints' | 'steps' | 'rubric' | 'modelThinking' | 'failureExample' | 'improvementExample'>;
-const mk = (p: P): Exercise => ({ mode: 'literacy', sources: [], version: 1, status: 'published', verifiedAt: V, ...p });
+const mk = (p: P): Exercise => ({ mode: 'literacy', sources: [JDLA], version: 1, status: 'published', verifiedAt: V, ...p });
 
 export const EXERCISES: Exercise[] = [
   mk({
@@ -37,6 +39,7 @@ export const EXERCISES: Exercise[] = [
     modelThinking: '権限設計は利便性ではなく事故の上限を決める作業。最小権限から始め、必要性が確認できた範囲だけ広げる。',
     failureExample: '効率のためメール送信と削除を無承認で許可する。',
     improvementExample: '下書き作成までは自動、送信は承認、削除は二重確認とする。',
+    sources: [JDLA, OWASP_LLM],
   }),
   mk({
     id: 'ex-04', syllabusId: 'l-02', title: '同一課題に適したモデルを選ぶ',
@@ -70,45 +73,52 @@ export const EXERCISES: Exercise[] = [
     modelThinking: '文書内の指示文はデータであり命令ではない、という原則をシステム全体で守る。',
     failureExample: '取り込んだ文書の指示にAIが従うことを仕様として許す。',
     improvementExample: '文書は引用専用とし、システム指示と分離。出力前に個人情報パターンを検査する。',
+    sources: [JDLA, OWASP_LLM],
   }),
 ];
 
-// モデル比較は「観点」の提示を目的とし、数値は推測で埋めない。個別の料金・機能は確認時点の公式情報で更新する。
+// モデル比較は「観点」と、確認日時点で各社の公式ドキュメントに掲載されている主なモデル名を示す。
+// 性能の序列や推測の数値は載せない。料金の数値は変わりやすいため、API料金の区分だけを公式ページの記載どおりに示す。
+const M = '2026-11-03';
 export const MODEL_INFOS: ModelInfo[] = [
   {
-    id: 'mi-chatgpt', name: 'ChatGPT（GPT系モデル）', vendor: 'OpenAI', asOf: V,
-    source: { title: 'OpenAI 公式サイト', url: 'https://openai.com/' },
+    id: 'mi-chatgpt', name: 'ChatGPT／OpenAI API（GPT系）', vendor: 'OpenAI', asOf: M,
+    source: { title: 'OpenAI API ドキュメント：Models', url: 'https://developers.openai.com/api/docs/models' },
+    lineup: 'GPT-6 Astra（最上位）、GPT-6.1 Sol（性能と費用の均衡）、GPT-6 Luna（大量処理向け）。2026-10-26にGPT-6.1 Terraも発表。',
     strengths: '文章生成・推論・プログラミング・ツール利用など幅広い用途に対応する代表的なサービス。',
     limits: 'モデルとプランにより利用上限・機能が異なる。出力の正確さは用途ごとの検証が必要。',
-    pricingNote: '料金・プランは変更されるため公式ページで確認（本表では数値を固定しない）。',
-    privacyNote: 'データ利用条件はプラン（個人向け／法人向け）で異なる。契約時点の公式条件を確認すること。',
-    bestFor: '汎用的な文章・分析・開発支援全般の第一候補として、自タスクで実測して判断する。',
+    pricingNote: 'API料金はモデルごとに入力・出力トークン単位で設定（公式ページで最新値を確認）。ChatGPTはプラン制。',
+    privacyNote: 'データ利用条件はプラン（個人向け／法人向け）とAPIで異なる。契約時点の公式条件を確認すること。',
+    bestFor: '汎用的な文章・分析・開発支援。上位モデルと軽量モデルを用途とコストで使い分ける。',
   },
   {
-    id: 'mi-claude', name: 'Claude', vendor: 'Anthropic', asOf: V,
-    source: { title: 'Anthropic 公式サイト', url: 'https://www.anthropic.com/' },
-    strengths: '長文処理と文章作成、コード生成に強みを持つとされるサービス。',
+    id: 'mi-claude', name: 'Claude', vendor: 'Anthropic', asOf: M,
+    source: { title: 'Claude ドキュメント：Models overview', url: 'https://platform.claude.com/docs/en/about-claude/models/overview' },
+    lineup: 'Claude Fable 5.1（高度な推論・長時間のエージェント作業向け）、Claude Opus 5.5（公式が最初の選択肢として推奨）、Claude Sonnet 5.5、Claude Haiku 5.5。',
+    strengths: '長文の読解・作成、コード生成、ツール利用を伴うエージェント用途を重視したサービス。',
     limits: 'モデルとプランにより利用上限・機能が異なる。評価はバージョンと日時に依存する。',
-    pricingNote: '料金・プランは変更されるため公式ページで確認（本表では数値を固定しない）。',
-    privacyNote: 'データ利用条件はプランで異なる。契約時点の公式条件を確認すること。',
-    bestFor: '長文資料の読解・作成を含むタスクで、自タスクで実測して判断する。',
+    pricingNote: 'API料金はモデルごとに入力・出力トークン単位で設定（公式ページで最新値を確認）。Claudeアプリはプラン制。',
+    privacyNote: 'データ利用条件は個人向けプラン・法人向けプラン・APIで異なる。契約時点の公式条件を確認すること。',
+    bestFor: '長文資料の読解・作成、コーディング、複数手順のエージェント作業で、自タスクで実測して判断する。',
   },
   {
-    id: 'mi-gemini', name: 'Gemini', vendor: 'Google', asOf: V,
-    source: { title: 'Google Gemini 公式サイト', url: 'https://gemini.google.com/' },
-    strengths: 'マルチモーダル処理とGoogleサービスとの連携に特徴があるサービス。',
-    limits: 'モデルとプランにより利用上限・機能が異なる。',
-    pricingNote: '料金・プランは変更されるため公式ページで確認（本表では数値を固定しない）。',
-    privacyNote: 'データ利用条件はアカウント種別とプランで異なる。公式条件を確認すること。',
-    bestFor: '画像を含む資料処理や検索と組み合わせる用途で実測して判断する。',
+    id: 'mi-gemini', name: 'Gemini', vendor: 'Google', asOf: M,
+    source: { title: 'Gemini API ドキュメント：Models', url: 'https://ai.google.dev/gemini-api/docs/models' },
+    lineup: 'Gemini 4 Argon（推論の最上位、100万トークンの文脈）、Gemini 3.8 Flash、Gemini 3.5 Flash-Lite、音声対話向けのGemini 3.8 Live。',
+    strengths: 'テキスト・画像・音声・動画・PDFを扱うマルチモーダル処理と、Googleのサービスとの連携に特徴がある。',
+    limits: 'モデルとプランにより利用上限・機能が異なる。一般向けアプリでは加入プランにより使えるモデルが変わる。',
+    pricingNote: 'API料金はモデルごとに設定（公式ページで最新値を確認）。一般向けアプリはプラン制。',
+    privacyNote: 'データ利用条件はアカウント種別（個人・組織）とプランで異なる。公式条件を確認すること。',
+    bestFor: '画像・音声・動画を含む資料の処理や、検索と組み合わせる用途で実測して判断する。',
   },
   {
-    id: 'mi-copilot', name: 'GitHub Copilot', vendor: 'GitHub / Microsoft', asOf: V,
-    source: { title: 'GitHub Copilot 公式ページ', url: 'https://github.com/features/copilot' },
-    strengths: 'エディタ内でのコード補完と開発支援に特化したサービス。',
-    limits: '生成コードの正確さとライセンス面の確認は利用者側のレビューが前提。',
-    pricingNote: '料金・プランは変更されるため公式ページで確認（本表では数値を固定しない）。',
-    privacyNote: '組織のポリシー設定によりコード送信範囲を制御できる場合がある。公式条件を確認すること。',
+    id: 'mi-copilot', name: 'GitHub Copilot', vendor: 'GitHub / Microsoft', asOf: M,
+    source: { title: 'GitHub Docs：Supported AI models in Copilot', url: 'https://docs.github.com/en/copilot/reference/ai-models/supported-models' },
+    lineup: '複数社のモデルを選んで使う形態。OpenAI（GPT-6系など）、Anthropic（Claude 5.5系など）、Google（Gemini 4 Argonなど）のモデルが一覧に掲載。',
+    strengths: 'エディタやGitHub上でのコード補完・レビュー・エージェント作業に特化した開発支援サービス。',
+    limits: '使えるモデルや利用量はプランと組織の設定で異なる。生成コードの正確さとライセンス面の確認は利用者側の責任。',
+    pricingNote: '個人・組織向けのプラン制（公式ページで最新の条件を確認）。',
+    privacyNote: '組織のポリシー設定でモデルの利用やコードの扱いを制御できる場合がある。公式条件を確認すること。',
     bestFor: '日常的なコーディング支援。生成コードは必ずテストとレビューを通す。',
   },
 ];
