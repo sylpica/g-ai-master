@@ -15,10 +15,8 @@ export function longestChoiceScore(qs = publishedQuestions): number {
   return hit / singles.length;
 }
 
-describe('正答の手がかり（既知の欠陥）', () => {
-  // it.fails: 欠陥が残っている間は「通過」と表示される。問題の書き換えで 40% 未満になったらこのテストが赤くなるので、
-  // その時点で it.fails を it に変えて恒常的な回帰テストにすること。
-  it.fails('「最長の選択肢＝正答」戦略の得点が40%未満である', () => {
+describe('正答の手がかり（作問上の偏り）', () => {
+  it('「最長の選択肢＝正答」戦略の得点が40%未満である', () => {
     expect(longestChoiceScore()).toBeLessThan(0.4);
   });
 });
