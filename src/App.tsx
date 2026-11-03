@@ -163,7 +163,8 @@ export default function App() {
         ) : view === 'lessons' ? (
           <LessonsView mode={state.mode} state={state} onOpen={setLessonId} upd={upd} />
         ) : view === 'practice' ? (
-          <PracticeView key={`practice-${state.mode}`} mode={state.mode} questions={questions.filter((x) => x.mode === state.mode)} onAnswer={(q, sel, sec) => { let c = false; upd((s) => { c = recordAnswer(s, q, sel, sec, 'practice'); return s; }); return c; }} />
+          <PracticeView key={`practice-${state.mode}`} mode={state.mode} questions={questions.filter((x) => x.mode === state.mode)}
+            bookmarks={state.bookmarks} onBookmark={(id) => upd((s) => { const k = `q:${id}`; s.bookmarks = s.bookmarks.includes(k) ? s.bookmarks.filter((b) => b !== k) : [...s.bookmarks, k]; return s; })} onAnswer={(q, sel, sec) => { let c = false; upd((s) => { c = recordAnswer(s, q, sel, sec, 'practice'); return s; }); return c; }} />
         ) : view === 'exam' ? (
           <ExamView state={state} gQuestions={gQuestions} upd={upd} recordAnswer={recordAnswer} />
         ) : view === 'review' ? (
@@ -272,12 +273,14 @@ function LessonView({ lesson, done, onDone, onBack, bookmarked, onBookmark }: { 
   );
 }
 
-function PracticeView({ questions: liveQuestions, onAnswer, reviewMode }: { mode: Mode; questions: Question[]; onAnswer: (q: Question, sel: number[], sec: number) => boolean; reviewMode?: boolean }) {
+function PracticeView({ questions: liveQuestions, onAnswer, reviewMode, bookmarks = [], onBookmark }: { mode: Mode; questions: Question[]; onAnswer: (q: Question, sel: number[], sec: number) => boolean; reviewMode?: boolean; bookmarks?: string[]; onBookmark?: (id: string) => void }) {
   // 復習は画面を開いた時点の期限到来分で出題範囲を固定する。
   // 回答すると次回期限が先へ移り live の一覧から消えるため、固定しないと解説表示中に別の問題へ差し替わる。
   const [reviewQueue] = useState(liveQuestions);
   const questions = reviewMode ? reviewQueue : liveQuestions;
   const [field, setField] = useState('all');
+  const [text, setText] = useState('');
+  const [savedOnly, setSavedOnly] = useState(false);
   const [idx, setIdx] = useState(0);
   const [sel, setSel] = useState<number[]>([]);
   const [result, setResult] = useState<boolean | null>(null);
@@ -285,7 +288,11 @@ function PracticeView({ questions: liveQuestions, onAnswer, reviewMode }: { mode
   const [round, setRound] = useState<{ answered: string[]; correct: number }>({ answered: [], correct: 0 });
   const [shuffleOn, setShuffleOn] = useState(false);
   const [seed, setSeed] = useState(1);
-  const pool = useMemo(() => questions.filter((x) => field === 'all' || x.syllabusId === field), [questions, field]);
+  // 問題検索（問題文・選択肢・解説の全文）と保存した問題の絞り込み。保存状態は回答中に変えても出題範囲が変わらないよう、絞り込みの切替時点で固定する
+  const [savedAtToggle, setSavedAtToggle] = useState<string[]>([]);
+  const pool = useMemo(() => questions.filter((x) => (field === 'all' || x.syllabusId === field)
+    && (!text || [x.stem, ...x.choices, x.basic, x.detail].some((t) => t.includes(text)))
+    && (!savedOnly || savedAtToggle.includes(`q:${x.id}`))), [questions, field, text, savedOnly, savedAtToggle]);
   const displayPool = useMemo(() => (shuffleOn ? shuffle(pool, seed) : pool), [pool, shuffleOn, seed]);
   const q = displayPool[idx % Math.max(displayPool.length, 1)];
   const resetRound = () => { setIdx(0); setSel([]); setResult(null); setStarted(Date.now()); setRound({ answered: [], correct: 0 }); };
@@ -297,17 +304,21 @@ function PracticeView({ questions: liveQuestions, onAnswer, reviewMode }: { mode
   };
   return (
     <section><h1>{reviewMode ? '今日の復習' : '演習'}</h1>
-      {!reviewMode && <p><label>分野 <select value={field} onChange={(e) => { setField(e.target.value); resetRound(); }}>
+      {!reviewMode && <p className="controls"><label>分野 <select value={field} onChange={(e) => { setField(e.target.value); resetRound(); }}>
         <option value="all">全分野</option>{fields.map((f) => <option key={f} value={f}>{syllabusById(f)?.chapter}</option>)}</select></label>{' '}
         <button type="button" className={shuffleOn ? 'primary' : ''} aria-pressed={shuffleOn} onClick={() => { setShuffleOn(!shuffleOn); if (!shuffleOn) setSeed(Date.now()); resetRound(); }}>出題順：{shuffleOn ? 'シャッフル' : '分野順'}</button>{' '}
-        {shuffleOn && <button type="button" onClick={() => { setSeed(Date.now()); resetRound(); }}>再シャッフル</button>}</p>}
+        {shuffleOn && <button type="button" onClick={() => { setSeed(Date.now()); resetRound(); }}>再シャッフル</button>}
+        <label>検索 <input type="search" aria-label="問題を検索" value={text} placeholder="用語・キーワード" onChange={(e) => { setText(e.target.value); resetRound(); }} /></label>
+        <label><input type="checkbox" checked={savedOnly} onChange={(e) => { setSavedAtToggle(bookmarks); setSavedOnly(e.target.checked); resetRound(); }} /> 保存した問題のみ</label></p>}
+      {pool.length === 0 && <p className="muted" role="status">条件に合う問題がありません。検索語や絞り込みを変えてください。</p>}
       {pool.length > 0 && round.answered.length >= pool.length && result === null ? (
         <div className="card"><h2>この範囲を1周しました</h2>
           <p>{pool.length}問中 {round.correct}問正解（{Math.round((round.correct / pool.length) * 100)}%）でした。誤答した問題は復習リストに入っています。</p>
           <button className="primary touch" onClick={() => { setRound({ answered: [], correct: 0 }); setIdx(0); setSel([]); setStarted(Date.now()); }}>もう1周する</button>
         </div>
       ) : q && <div className="card" key={q.id}>
-        <p className="muted meta">{syllabusById(q.syllabusId)?.chapter}／難易度{q.difficulty}{q.type === 'multi' ? '／複数選択' : q.type === 'truefalse' ? '／正誤判定' : ''}<span>{round.answered.length}／{pool.length}問</span></p>
+        <p className="muted meta">{syllabusById(q.syllabusId)?.chapter}／難易度{q.difficulty}{q.type === 'multi' ? '／複数選択' : q.type === 'truefalse' ? '／正誤判定' : ''}
+          <span>{onBookmark && <button type="button" className="bm" aria-pressed={bookmarks.includes(`q:${q.id}`)} onClick={() => onBookmark(q.id)}>{bookmarks.includes(`q:${q.id}`) ? '★ 保存済み' : '☆ 保存'}</button>}{round.answered.length}／{pool.length}問</span></p>
         <div className="bar" role="progressbar" aria-valuenow={pool.length ? Math.round((round.answered.length / pool.length) * 100) : 0} aria-valuemin={0} aria-valuemax={100} aria-label="この範囲の進捗" style={{ margin: '0 0 10px' }}><i style={{ width: `${pool.length ? (round.answered.length / pool.length) * 100 : 0}%` }} /></div>
         <fieldset style={{ border: 0, padding: 0, margin: 0 }}><legend><h2 style={{ display: 'inline' }}>{q.stem}</h2></legend>
         {q.choices.map((c, i) => (

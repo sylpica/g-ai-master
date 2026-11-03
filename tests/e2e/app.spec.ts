@@ -208,3 +208,17 @@ test('学習記録のエクスポートと読み込み（置き換え前に確�
   await expect(page.getByText(/読み込めませんでした/)).toBeVisible();
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('g-ai-master:state:v1')!).answers.length)).toBe(1);
 });
+
+test('演習：問題検索と保存した問題の絞り込み', async ({ page }) => {
+  await page.getByLabel('主要メニュー').getByRole('button', { name: '演習' }).click();
+  await page.getByRole('searchbox', { name: '問題を検索' }).fill('チューリングテスト');
+  await expect(page.locator('legend h2').first()).toContainText('チューリングテスト');
+  await page.getByRole('button', { name: '☆ 保存' }).click();
+  await expect(page.getByRole('button', { name: '★ 保存済み' })).toBeVisible();
+  await page.getByRole('searchbox', { name: '問題を検索' }).fill('');
+  await page.getByLabel('保存した問題のみ').check();
+  await expect(page.locator('.meta')).toContainText('0／1問');
+  await page.reload();
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('g-ai-master:state:v1')!).bookmarks);
+  expect(saved.some((b: string) => b.startsWith('q:'))).toBe(true);
+});
