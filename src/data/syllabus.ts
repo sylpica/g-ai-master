@@ -1,9 +1,9 @@
 import type { SyllabusNode } from '../types';
 
-// JDLA公式「G検定とは」ページ掲載のシラバス（G2024#6以降適用版）を2026-11-02に確認し、
+// JDLA公式「G検定とは」ページ掲載のシラバス（G2024#6以降適用版）を2026-11-02に確認し（2026-11-03に再確認、変更なし）、
 // 大分野→中分野（章）→学習項目の3層に構造化したもの。章ノードに教材・問題を紐づける。
 // 出典: https://www.jdla.org/certificate/general/ ／ シラバスPDF: https://www.jdla.org/download-category/syllabus/
-export const SYLLABUS_VERIFIED_AT = '2026-11-02';
+export const SYLLABUS_VERIFIED_AT = '2026-11-03';
 export const SYLLABUS_VERSION = 'G2024#6以降適用';
 
 const g = (id: string, area: string, chapter: string, title: string, order: number, prerequisites: string[] = []): SyllabusNode => ({
