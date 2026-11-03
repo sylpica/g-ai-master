@@ -37,8 +37,8 @@ const ITEMS: NewsItem[] = [
   {
     id: 'news-20261021-openai-google-cloud',
     date: '2026-10-21',
-    title: 'OpenAIのモデルとCodexがGoogle CloudのModel Gardenに提供開始',
-    summary: 'OpenAIのフロンティアモデルとエージェント型ワークフロー（Codex）が、Google Cloud上でGoogleのデータガバナンスのもとで使えるようになる提携が発表された。主要3社（OpenAI／Anthropic／Google）のモデルを同じクラウド基盤で選べるようになり、モデル選定では「性能」だけでなく、契約・運用主体・データの流れまで含めた比較が重要になっている。',
+    title: 'OpenAIのモデルとCodexをGoogle CloudのModel Gardenで提供すると発表（当初は限定プレビュー）',
+    summary: 'OpenAIのフロンティアモデルとエージェント型ワークフロー（Codex）を、Google CloudのModel Garden経由で提供する提携が発表された。発表時点では一部の企業顧客向けの限定プレビューで、一般提供は後日とされている。主要3社（OpenAI／Anthropic／Google）のモデルを同じクラウド基盤で選べるようになり、モデル選定では「性能」だけでなく、契約・運用主体・データの流れまで含めた比較が重要になっている。',
     category: 'サービス動向',
     importance: 'normal',
     source: { title: 'OpenAI: OpenAI models are coming to Google Cloud', url: 'https://openai.com/index/openai-models-google-cloud/' },

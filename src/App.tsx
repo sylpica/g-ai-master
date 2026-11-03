@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { AppState, ExamSession, Lesson, Mode, Question } from './types';
-import { G_SYLLABUS, LITERACY_SYLLABUS, syllabusById } from './data/syllabus';
+import { G_SYLLABUS, LITERACY_SYLLABUS, SYLLABUS_VERIFIED_AT, syllabusById } from './data/syllabus';
 import { publishedLessons } from './data/lessons';
 import { publishedQuestions } from './data/questions';
 import { EXERCISES, MODEL_INFOS } from './data/exercises';
 import { NEWS_ITEMS, NEWS_LAST_ADDED } from './data/news';
-import { loadState, saveState, exportState, defaultState } from './lib/storage';
+import { loadState, saveState, exportState, defaultState, parseState, clampGoal } from './lib/storage';
 import { judge, todayStr } from './lib/scoring';
 import { nextReview, dueCards } from './lib/review';
 import { fieldStats, readiness } from './lib/analysis';
@@ -14,6 +14,8 @@ import { remainingSec as examRemainingSec, effectiveElapsedSec, isPaused } from 
 
 type View = 'home' | 'lessons' | 'practice' | 'exam' | 'review' | 'analysis' | 'literacy' | 'settings';
 const EXAM_FULL_COUNT = 145;
+const EXAM_KIND_LABEL: Record<ExamSession['kind'], string> = { full: 'フル', short: '短縮', field: '分野別', custom: 'カスタム' };
+const MODE_LABEL: Record<Mode, string> = { g: 'G検定', literacy: 'AI教養' };
 
 function shuffle<T>(xs: T[], seed: number): T[] {
   const a = [...xs];
@@ -48,9 +50,18 @@ export default function App() {
   const upd = (fn: (s: AppState) => AppState) => setState((s) => fn(structuredClone(s)));
   const questions = publishedQuestions;
   const gQuestions = useMemo(() => questions.filter((x) => x.mode === 'g'), [questions]);
-  const due = dueCards(state.review);
-  const stats = fieldStats(state.answers, questions);
-  const ready = readiness(state.answers, state.lessonsDone.filter((id) => publishedLessons.find((l) => l.id === id && l.mode === 'g')), publishedLessons.filter((l) => l.mode === 'g').length);
+  // 復習・分析・到達度は現在のモードの問題だけで集計する（G検定の到達度にAI教養の回答を混ぜない）
+  const modeQuestionIds = useMemo(() => new Set(questions.filter((x) => x.mode === state.mode).map((x) => x.id)), [questions, state.mode]);
+  const due = dueCards(state.review).filter((c) => modeQuestionIds.has(c.questionId));
+  const modeAnswers = state.answers.filter((a) => modeQuestionIds.has(a.questionId));
+  const stats = fieldStats(modeAnswers, questions);
+  const modeLessons = publishedLessons.filter((l) => l.mode === state.mode);
+  const modeLessonsDone = state.lessonsDone.filter((id) => modeLessons.some((l) => l.id === id));
+  const ready = readiness(modeAnswers, modeLessonsDone, modeLessons.length);
+  const isG = state.mode === 'g';
+
+  // 画面を切り替えたら先頭から表示する（前画面のスクロール位置が残って本文の途中から始まるのを防ぐ）
+  useEffect(() => { window.scrollTo(0, 0); }, [view, lessonId]);
   const activeExam = state.exams.find((e) => e.status === 'in-progress');
 
   const recordAnswer = (s: AppState, q: Question, selected: number[], seconds: number, context: 'practice' | 'exam' | 'review') => {
@@ -92,86 +103,83 @@ export default function App() {
             onBack={() => setLessonId(null)} />
         ) : view === 'home' ? (
           <section>
-            <h1>{state.mode === 'g' ? 'G検定取得' : 'AI教養'} ダッシュボード</h1>
-            {activeExam && <div className="card"><h2>中断中の模擬試験</h2><p>{activeExam.kind}／{activeExam.questionIds.length}問／{activeExam.pauses.length}回中断</p><button className="primary touch" onClick={() => setView('exam')}>再開する</button></div>}
+            <h1>{isG ? 'G検定取得' : 'AI教養'} ダッシュボード</h1>
+            {activeExam && <div className="card"><h2>中断中の模擬試験</h2><p>{EXAM_KIND_LABEL[activeExam.kind]}／{activeExam.questionIds.length}問／回答 {Object.keys(activeExam.answers).length}問／一時停止 {activeExam.pauses.length}回</p><button className="primary touch" onClick={() => setView('exam')}>再開する</button></div>}
             {(() => {
-              const gLessons = publishedLessons.filter((l) => l.mode === 'g');
-              const gDone = state.lessonsDone.filter((id) => gLessons.some((l) => l.id === id)).length;
               const next = due.length > 0
-                ? { title: `復習が${due.length}問たまっています`, body: '期限の来た問題から先に片付けると、記憶の定着効率が上がります。', label: '復習をはじめる', view: 'review' as View }
-                : gDone < gLessons.length
-                  ? { title: '教材の続きを学びましょう', body: `G教材は ${gDone}／${gLessons.length} 件が学習済みです。教材で概念を押さえてから演習に進む流れが基本です。`, label: '教材を開く', view: 'lessons' as View }
-                  : state.answers.length < 20
+                ? { title: `復習が${due.length}問たまっています`, body: '期限の来た問題から解きましょう。', label: '復習をはじめる', view: 'review' as View }
+                : modeLessonsDone.length < modeLessons.length
+                  ? { title: '教材の続きを学びましょう', body: `${MODE_LABEL[state.mode]}の教材 ${modeLessonsDone.length}／${modeLessons.length} 件が学習済みです。`, label: '教材を開く', view: (isG ? 'lessons' : 'literacy') as View }
+                  : modeAnswers.length < 20
                     ? { title: '演習でアウトプットしましょう', body: '教材は一通り学習済みです。演習で初見正答率を測りましょう。', label: '演習をはじめる', view: 'practice' as View }
-                    : { title: '模擬試験に挑戦しましょう', body: '本番形式で時間配分と弱点を確認できます。', label: '模擬試験を開く', view: 'exam' as View };
+                    : isG
+                      ? { title: '模擬試験に挑戦しましょう', body: '本番形式で時間配分と弱点を確認できます。', label: '模擬試験を開く', view: 'exam' as View }
+                      : { title: '実践演習に取り組みましょう', body: '学んだ内容を実際の作業で試し、ルーブリックで自己評価します。', label: '実践演習を開く', view: 'literacy' as View };
               return <div className="card next"><h2>次にやること：{next.title}</h2><p>{next.body}</p><button className="primary touch" onClick={() => setView(next.view)}>{next.label}</button></div>;
             })()}
-            <div className="card"><h2>学習の流れ</h2>
-              <ol className="flow">
-                <li><button onClick={() => setView('lessons')}><b>教材</b><span>学習済み {state.lessonsDone.filter((id) => publishedLessons.some((l) => l.id === id && l.mode === 'g')).length}／{publishedLessons.filter((l) => l.mode === 'g').length}件</span></button></li>
-                <li><button onClick={() => setView('practice')}><b>演習</b><span>累計 {state.answers.length}問に回答</span></button></li>
+            <div className="card">
+              <ol className="flow" aria-label="学習の流れ">
+                <li><button onClick={() => setView(isG ? 'lessons' : 'literacy')}><b>教材</b><span>学習済み {modeLessonsDone.length}／{modeLessons.length}件</span></button></li>
+                <li><button onClick={() => setView('practice')}><b>演習</b><span>累計 {modeAnswers.length}問に回答</span></button></li>
                 <li><button onClick={() => setView('review')}><b>復習</b><span>期限の来た問題 {due.length}問</span></button></li>
-                <li><button onClick={() => setView('exam')}><b>模擬試験</b><span>提出済み {state.exams.filter((e) => e.status === 'submitted').length}回</span></button></li>
+                {isG
+                  ? <li><button onClick={() => setView('exam')}><b>模擬試験</b><span>提出済み {state.exams.filter((e) => e.status === 'submitted').length}回</span></button></li>
+                  : <li><button onClick={() => setView('literacy')}><b>実践演習</b><span>自己評価 {Object.values(state.exerciseChecks).filter((v) => v.length > 0).length}／{EXERCISES.length}件</span></button></li>}
               </ol>
-            </div>
-            <div className="card"><div className="kpi">
-              <div>今日の復習<b>{due.length}問</b></div>
-              <div>累計回答<b>{state.answers.length}問</b></div>
-              <div>初見正答率<b>{pct(ready.firstSeenAccuracy)}</b></div>
-              <div>G教材の網羅<b>{pct(ready.coverage)}</b></div>
-              <div>学習済み教材<b>{state.lessonsDone.length}件</b></div>
-            </div>
+              <div className="kpi" style={{ marginTop: 12 }}>
+                <div>初見正答率<b>{pct(ready.firstSeenAccuracy)}</b></div>
+                <div>全体正答率<b>{pct(ready.overallAccuracy)}</b></div>
+                <div>教材の網羅<b>{pct(ready.coverage)}</b></div>
+              </div>
             {(() => {
               const today = todayStr();
-              const todays = state.answers.filter((a) => a.at.slice(0, 10) === today);
+              const todays = state.answers.filter((a) => todayStr(new Date(a.at)) === today);
               const min = Math.round(todays.reduce((acc, a) => acc + (a.seconds || 0), 0) / 60);
               return <div style={{ marginTop: 12 }}>
-                <p>今日の学習：{todays.length}問／約{min}分（目標 {state.dailyGoalMin}分）</p>
+                <p style={{ margin: '0 0 6px' }}>今日の学習：{todays.length}問／約{min}分（回答時間からの概算・目標 {state.dailyGoalMin}分）</p>
                 <div className="bar" role="progressbar" aria-valuenow={Math.min(100, Math.round((min / Math.max(state.dailyGoalMin, 1)) * 100))} aria-valuemin={0} aria-valuemax={100} aria-label="今日の学習目標の進捗">
                   <i style={{ width: `${Math.min(100, (min / Math.max(state.dailyGoalMin, 1)) * 100)}%` }} /></div>
-                <p className="muted">学習時間は回答にかかった時間からの概算です。</p>
               </div>;
             })()}
             </div>
-            <div className="card"><h2>弱点分野（正答率の低い順）</h2>
-              {stats.length === 0 ? <p className="muted">まだ回答記録がありません。演習から始めましょう。</p> : (
-                <ul>{stats.slice(0, 3).map((f) => <li key={f.syllabusId}>{syllabusById(f.syllabusId)?.chapter}：{pct(f.accuracy)}（{f.total}問）</li>)}</ul>)}
-            </div>
-            <div className="card note"><h2>到達度と教材について</h2>
-              <p className="muted">{ready.note}</p>
-              {ready.reached95 && <p className="ok">到達基準（初見95%以上・模試30問以上で95%以上・網羅90%以上）を満たしています。</p>}
-              <p>教材バージョン：{state.contentVersion}{state.lastUpdateCheck ? `／最終確認：${state.lastUpdateCheck.at.slice(0, 10)}（${state.lastUpdateCheck.result}）` : ''}</p>
-              <button onClick={() => setView('settings')}>更新を確認する</button>
+            {stats.length > 0 && <div className="card"><h2>弱点分野（正答率の低い順）</h2>
+              <ul>{stats.slice(0, 3).map((f) => <li key={f.syllabusId}>{syllabusById(f.syllabusId)?.chapter}：{pct(f.accuracy)}（{f.total}問）</li>)}</ul>
+            </div>}
+            <div className="card note">
+              {isG && <p className="muted">{ready.note}</p>}
+              {isG && ready.reached95 && <p className="ok">到達基準（初見95%以上・模試30問以上で95%以上・網羅90%以上）を満たしています。</p>}
+              <p>教材バージョン：{state.contentVersion}{state.lastUpdateCheck ? `／最終確認：${state.lastUpdateCheck.at.slice(0, 10)}（${state.lastUpdateCheck.result}）` : ''}{' '}
+                <button onClick={() => setView('settings')}>更新を確認</button></p>
             </div>
           </section>
         ) : view === 'lessons' ? (
           <LessonsView mode={state.mode} state={state} onOpen={setLessonId} upd={upd} />
         ) : view === 'practice' ? (
-          <PracticeView mode={state.mode} questions={questions.filter((x) => x.mode === state.mode)} onAnswer={(q, sel, sec) => { let c = false; upd((s) => { c = recordAnswer(s, q, sel, sec, 'practice'); return s; }); return c; }} />
+          <PracticeView key={`practice-${state.mode}`} mode={state.mode} questions={questions.filter((x) => x.mode === state.mode)} onAnswer={(q, sel, sec) => { let c = false; upd((s) => { c = recordAnswer(s, q, sel, sec, 'practice'); return s; }); return c; }} />
         ) : view === 'exam' ? (
           <ExamView state={state} gQuestions={gQuestions} upd={upd} recordAnswer={recordAnswer} />
         ) : view === 'review' ? (
-          <PracticeView key="review" mode={state.mode} questions={questions.filter((x) => x.mode === state.mode && due.some((d) => d.questionId === x.id))} reviewMode
+          <PracticeView key={`review-${state.mode}`} mode={state.mode} questions={questions.filter((x) => x.mode === state.mode && due.some((d) => d.questionId === x.id))} reviewMode
             onAnswer={(q, sel, sec) => { let c = false; upd((s) => { c = recordAnswer(s, q, sel, sec, 'review'); return s; }); return c; }} />
         ) : view === 'analysis' ? (
-          <section><h1>学習分析</h1>
+          <section><h1>学習分析（{MODE_LABEL[state.mode]}）</h1>
             <div className="card"><div className="kpi">
               <div>全体正答率<b>{pct(ready.overallAccuracy)}</b></div>
               <div>初見正答率<b>{pct(ready.firstSeenAccuracy)}</b></div>
-              <div>模試正答率<b>{pct(ready.examAccuracy)}</b></div>
-              <div>シラバス網羅<b>{pct(ready.coverage)}</b></div>
+              {isG && <div>模試正答率<b>{pct(ready.examAccuracy)}</b></div>}
+              <div>教材の網羅<b>{pct(ready.coverage)}</b></div>
             </div></div>
             <div className="card"><h2>解答時間</h2>
-              {(() => { const timed = state.answers.filter((a) => a.seconds > 0); const avg = timed.length ? Math.round(timed.reduce((acc, a) => acc + a.seconds, 0) / timed.length) : null;
+              {(() => { const timed = modeAnswers.filter((a) => a.seconds > 0); const avg = timed.length ? Math.round(timed.reduce((acc, a) => acc + a.seconds, 0) / timed.length) : null;
                 return <p>{avg === null ? 'まだ計測できる回答記録がありません。' : `平均 ${avg}秒／問（計測対象 ${timed.length}問）。模試では1問あたりの目安時間と比較して、時間配分の傾向を確認できます。`}</p>; })()}
             </div>
-            <div className="card"><h2>分野別</h2><div className="tablewrap"><table><thead><tr><th>分野</th><th>回答</th><th>正答率</th><th>初見正答率</th></tr></thead>
-              <tbody>{stats.map((f) => <tr key={f.syllabusId}><td>{syllabusById(f.syllabusId)?.chapter}</td><td>{f.total}</td><td>{pct(f.accuracy)}</td><td>{pct(f.firstSeenAccuracy)}</td></tr>)}</tbody></table></div></div>
-            <div className="card"><h2>模擬試験の履歴</h2>
+            <div className="card"><h2>分野別</h2>{stats.length === 0 ? <p className="muted">まだ回答記録がありません。</p> : <div className="tablewrap"><table><thead><tr><th>分野</th><th>回答</th><th>正答率</th><th>初見正答率</th></tr></thead>
+              <tbody>{stats.map((f) => <tr key={f.syllabusId}><td>{syllabusById(f.syllabusId)?.chapter}</td><td>{f.total}</td><td>{pct(f.accuracy)}</td><td>{pct(f.firstSeenAccuracy)}</td></tr>)}</tbody></table></div>}</div>
+            {isG && <div className="card"><h2>模擬試験の履歴</h2>
               {state.exams.filter((e) => e.status === 'submitted').length === 0 ? <p className="muted">まだ提出済みの模試がありません。</p> :
-                <ul>{state.exams.filter((e) => e.status === 'submitted').map((e) => <li key={e.id}>{e.submittedAt?.slice(0, 10)} {e.kind} {e.questionIds.length}問／中断{e.pauses.length}回{e.strict ? '' : '（本番条件とは異なる記録）'}</li>)}</ul>}
-            </div>
-            <div className="card note"><h2>指標の読み方</h2><p className="muted">{ready.note} 記録が少ない段階の指標は不確実性が大きいため、傾向として読んでください。公式の合格点・得点算出方法は非公開のため、このアプリでは得点換算や合格確率は表示しません。</p></div>
+                <ul>{state.exams.filter((e) => e.status === 'submitted').map((e) => <li key={e.id}>{e.submittedAt ? todayStr(new Date(e.submittedAt)) : ''} {EXAM_KIND_LABEL[e.kind]} {e.questionIds.length}問／一時停止{e.pauses.length}回{e.strict ? '' : '（本番条件とは異なる記録）'}</li>)}</ul>}
+            </div>}
+            <div className="card note"><p className="muted">{ready.note} 記録が少ない段階の指標は不確実性が大きいため、傾向として読んでください。</p></div>
           </section>
         ) : view === 'literacy' ? (
           <LiteracyView onOpen={setLessonId} state={state} upd={upd} />
@@ -193,31 +201,38 @@ function LessonsView({ mode, state, onOpen, upd }: { mode: Mode; state: AppState
     && (!bmOnly || state.bookmarks.includes(`lesson:${l.id}`)));
   const accByField = new Map<string, number>();
   for (const f of fieldStats(state.answers, publishedQuestions)) if (f.accuracy !== null) accByField.set(f.syllabusId, f.accuracy);
-  const ordered = state.settings.order === 'weak'
-    ? [...lessons].sort((a, b) => (accByField.get(a.syllabusId) ?? -1) - (accByField.get(b.syllabusId) ?? -1))
-    : state.settings.order === 'free'
-      ? lessons
-      : [...lessons].sort((a, b) => (syllabusById(a.syllabusId)?.order ?? 0) - (syllabusById(b.syllabusId)?.order ?? 0));
+  // 学習順序は章カードの並びに反映する（従来は章内の並び替えだけで、章が1教材のため設定が画面に効いていなかった）
+  const chapterDone = (id: string) => publishedLessons.filter((l) => l.syllabusId === id).every((l) => state.lessonsDone.includes(l.id));
+  const order = state.settings.order;
+  const nodes = order === 'weak'
+    // 正答率の低い章を先頭へ。未回答の章は判断材料がないため後ろに置く
+    ? [...syllabus].sort((a, b) => (accByField.get(a.id) ?? 2) - (accByField.get(b.id) ?? 2) || a.order - b.order)
+    : order === 'recommended'
+      // 前提順（シラバス順は前提関係を満たす）のまま、未学習の章を先に出す
+      ? [...syllabus].sort((a, b) => Number(chapterDone(a.id)) - Number(chapterDone(b.id)) || a.order - b.order)
+      : syllabus;
   return (
     <section><h1>{mode === 'g' ? 'G検定 教材' : 'AI教養 教材'}</h1>
       <p><label>教材を検索 <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="タイトル・要点・分野で検索" /></label>{' '}
         <label><input type="checkbox" checked={bmOnly} onChange={(e) => setBmOnly(e.target.checked)} /> ブックマークのみ</label>{' '}
         <label>学習順序 <select value={state.settings.order} onChange={(e) => upd((s) => { s.settings.order = e.target.value as AppState['settings']['order']; return s; })}>
-          <option value="syllabus">公式シラバス順</option><option value="recommended">推奨順（前提知識から）</option>
-          <option value="weak">弱点優先（分析を参照）</option><option value="free">自由学習</option></select></label></p>
+          <option value="syllabus">公式シラバス順</option><option value="recommended">推奨順（未学習を前提順に）</option>
+          <option value="weak">弱点優先（分析を参照）</option><option value="free">自由学習（前提表示なし）</option></select></label></p>
       {lessons.length === 0 && <p className="muted" role="status">該当する教材がありません。検索語や「ブックマークのみ」を変えてお試しください。</p>}
-      {syllabus.map((node) => {
-        const ls = ordered.filter((l) => l.syllabusId === node.id);
-        if (q && ls.length === 0) return null;
+      <div className="grid lessons">
+      {nodes.map((node) => {
+        const ls = lessons.filter((l) => l.syllabusId === node.id);
+        if ((q || bmOnly) && ls.length === 0) return null;
         return (
           <div key={node.id} className="card"><h2>{node.chapter}</h2>
             <p className="muted">{node.title}</p>
-            {node.prerequisites.length > 0 && <p className="muted">前提：{node.prerequisites.map((p) => syllabusById(p)?.chapter).join('、')}</p>}
+            {order !== 'free' && node.prerequisites.length > 0 && <p className="muted">前提：{node.prerequisites.map((p) => syllabusById(p)?.chapter).join('、')}</p>}
             {ls.map((l) => <p key={l.id}><button className="touch" onClick={() => onOpen(l.id)}>{l.title}</button> {state.lessonsDone.includes(l.id) ? <span className="ok">学習済み</span> : ''}</p>)}
             {ls.length === 0 && <p className="muted">教材は今後追加されます。</p>}
           </div>
         );
       })}
+      </div>
     </section>
   );
 }
@@ -242,7 +257,11 @@ function LessonView({ lesson, done, onDone, onBack, bookmarked, onBookmark }: { 
   );
 }
 
-function PracticeView({ questions, onAnswer, reviewMode }: { mode: Mode; questions: Question[]; onAnswer: (q: Question, sel: number[], sec: number) => boolean; reviewMode?: boolean }) {
+function PracticeView({ questions: liveQuestions, onAnswer, reviewMode }: { mode: Mode; questions: Question[]; onAnswer: (q: Question, sel: number[], sec: number) => boolean; reviewMode?: boolean }) {
+  // 復習は画面を開いた時点の期限到来分で出題範囲を固定する。
+  // 回答すると次回期限が先へ移り live の一覧から消えるため、固定しないと解説表示中に別の問題へ差し替わる。
+  const [reviewQueue] = useState(liveQuestions);
+  const questions = reviewMode ? reviewQueue : liveQuestions;
   const [field, setField] = useState('all');
   const [idx, setIdx] = useState(0);
   const [sel, setSel] = useState<number[]>([]);
@@ -290,7 +309,7 @@ function PracticeView({ questions, onAnswer, reviewMode }: { mode: Mode; questio
             <h3>選択肢ごとの判定理由</h3>
             <ul>{q.choices.map((c, i) => <li key={i}>{String.fromCharCode(65 + i)}. {c} — {q.choiceReasons[i]}{q.answer.includes(i) ? '（正答）' : ''}</li>)}</ul>
             <p className="muted">出典：{q.sources.map((s) => s.title).join('、')}／最終検証 {q.verifiedAt}</p>
-            <button className="primary touch" onClick={() => { setIdx(idx + 1); setSel([]); setResult(null); setStarted(Date.now()); }}>次の問題</button>
+            <button className="primary touch" onClick={() => { setIdx(idx + 1); setSel([]); setResult(null); setStarted(Date.now()); window.scrollTo(0, 0); }}>次の問題</button>
           </div>
         )}
       </div>}
@@ -315,6 +334,8 @@ function ExamView({ state, gQuestions, upd, recordAnswer }: { state: AppState; g
     upd((s) => { s.exams.push(session); return s; });
   };
   const lastSubmitted = [...state.exams].reverse().find((e) => e.status === 'submitted');
+  // 問題数は 1〜30 に丸める（空欄・負数・巨大値で不正な模試や負の制限時間が作られないようにする）
+  const safeCount = Math.min(30, Math.max(1, Math.floor(Number.isFinite(count) ? count : 10) || 10));
   // フックは早期returnより前に置く（Hooksのルール）。activeが無い場合は空で計算する。
   const qs = active ? active.questionIds.map((id) => gQuestions.find((x) => x.id === id)!).filter(Boolean) : [];
   const cur = active ? qs[active.current] : undefined;
@@ -346,8 +367,8 @@ function ExamView({ state, gQuestions, upd, recordAnswer }: { state: AppState; g
           const rqs = lastSubmitted.questionIds.map((id) => gQuestions.find((x) => x.id === id)!).filter(Boolean);
           const correctCount = rqs.filter((x) => judge(lastSubmitted.answers[x.id] ?? [], x.answer)).length;
           return (
-            <div className="card"><h2>直近の結果（{lastSubmitted.kind}）</h2>
-              <p>正解 {correctCount}／{rqs.length}問（{rqs.length ? Math.round((correctCount / rqs.length) * 100) : 0}%）／中断 {lastSubmitted.pauses.length}回{lastSubmitted.strict ? '' : '（一時停止したため本番条件の完全再現ではありません）'}</p>
+            <div className="card"><h2>直近の結果（{EXAM_KIND_LABEL[lastSubmitted.kind]}）</h2>
+              <p>正解 {correctCount}／{rqs.length}問（{rqs.length ? Math.round((correctCount / rqs.length) * 100) : 0}%）／一時停止 {lastSubmitted.pauses.length}回{lastSubmitted.strict ? '' : '（一時停止したため本番条件の完全再現ではありません）'}</p>
               {rqs.map((x, i) => (
                 <details key={x.id}><summary>問{i + 1}. {x.stem} — {judge(lastSubmitted.answers[x.id] ?? [], x.answer) ? '正解' : '不正解'}</summary>
                   <p>{x.basic}</p><p>{x.detail}</p>
@@ -370,18 +391,17 @@ function ExamView({ state, gQuestions, upd, recordAnswer }: { state: AppState; g
           <button className="primary touch" onClick={() => start('short', shuffle(gQuestions, Date.now() + 7).slice(0, 10), 900)}>開始</button></div>
         <div className="card"><h2>分野別／カスタム模擬試験</h2>
           <p><label>分野 <select value={field} onChange={(e) => setField(e.target.value)}>{G_SYLLABUS.map((s) => <option key={s.id} value={s.id}>{s.chapter}</option>)}</select></label>{' '}
-            <label>問題数 <input type="number" min={1} max={30} value={count} onChange={(e) => setCount(Number(e.target.value))} style={{ width: 80 }} /></label></p>
-          <button className="primary touch" onClick={() => { const qs = shuffle(gQuestions.filter((x) => x.syllabusId === field), Date.now() + 13).slice(0, count); start('field', qs, qs.length * 90); }}>分野別を開始</button>{' '}
-          <button className="touch" onClick={() => start('custom', shuffle(gQuestions, Date.now() + 29).slice(0, count), count * 90)}>カスタム（全分野）</button>
-          <p className="muted">分野に検証済み問題が不足する場合は、ある分だけで構成します（重複による水増しはしません）。</p>
+            <label>問題数 <input type="number" min={1} max={30} value={count} onChange={(e) => setCount(Number(e.target.value))} onBlur={() => setCount(safeCount)} style={{ width: 80 }} /></label></p>
+          <button className="primary touch" onClick={() => { const qs = shuffle(gQuestions.filter((x) => x.syllabusId === field), Date.now() + 13).slice(0, safeCount); start('field', qs, qs.length * 90); }}>分野別を開始</button>{' '}
+          <button className="touch" onClick={() => { const qs = shuffle(gQuestions, Date.now() + 29).slice(0, safeCount); start('custom', qs, qs.length * 90); }}>カスタム（全分野）</button>
         </div>
       </section>
     );
   }
   return (
-    <section><h1>模擬試験（{active.kind}）</h1>
+    <section><h1>模擬試験（{EXAM_KIND_LABEL[active.kind]}）</h1>
       <div className="card">
-        <p>残り時間 <b role="timer" aria-label={`残り${Math.floor(remain / 60)}分${remain % 60}秒`}>{Math.floor(remain / 60)}:{String(remain % 60).padStart(2, '0')}</b>／回答 {answeredCount}／{qs.length}問{paused ? '／一時停止中' : ''}／中断 {active.pauses.length}回</p>
+        <p>残り時間 <b role="timer" aria-label={`残り${Math.floor(remain / 60)}分${remain % 60}秒`}>{Math.floor(remain / 60)}:{String(remain % 60).padStart(2, '0')}</b>／回答 {answeredCount}／{qs.length}問{paused ? '／一時停止中' : ''}／一時停止 {active.pauses.length}回</p>
         {remain === 0 && <p role="alert" className="bad">制限時間に達したため自動提出します。</p>}
         <div className="bar" aria-hidden="true"><i style={{ width: `${(answeredCount / qs.length) * 100}%` }} /></div>
         {cur && <>
@@ -389,8 +409,8 @@ function ExamView({ state, gQuestions, upd, recordAnswer }: { state: AppState; g
           {cur.choices.map((c, i) => {
             const sel = active.answers[cur.id] ?? [];
             return <button key={i} className={`choice touch ${sel.includes(i) ? 'sel' : ''}`} aria-pressed={sel.includes(i)}
-              disabled={paused}
-              onClick={() => upd((s) => { const e = s.exams.find((x) => x.id === active.id)!; e.answers[cur.id] = cur.type === 'multi' ? (sel.includes(i) ? sel.filter((x) => x !== i) : [...sel, i]) : [i]; return s; })}>
+              disabled={paused || remain === 0}
+              onClick={() => upd((s) => { const e = s.exams.find((x) => x.id === active.id)!; const next = cur.type === 'multi' ? (sel.includes(i) ? sel.filter((x) => x !== i) : [...sel, i]) : [i]; if (next.length) e.answers[cur.id] = next; else delete e.answers[cur.id]; return s; })}>
               <span>{c}</span></button>;
           })}</fieldset>
         </>}
@@ -403,8 +423,10 @@ function ExamView({ state, gQuestions, upd, recordAnswer }: { state: AppState; g
             : <button onClick={() => upd((s) => { const e = s.exams.find((x) => x.id === active.id)!; e.pauses.push({ at: new Date().toISOString() }); e.strict = false; return s; })}>一時停止</button>}{' '}
           <button onClick={() => { if (confirm(`未回答 ${qs.length - answeredCount}問があります。提出しますか？`)) submitExam(false); }}>提出する</button>
         </p>
-        <h3>問題一覧</h3>
-        <p>{qs.map((x, i) => <button key={x.id} style={{ margin: 2 }} aria-current={i === active.current} onClick={() => upd((s) => { s.exams.find((e2) => e2.id === active.id)!.current = i; return s; })}>{i + 1}{active.answers[x.id] ? '✓' : ''}{active.flags.includes(x.id) ? '⚑' : ''}</button>)}</p>
+        <details className="qindex" open={qs.length <= 30}>
+          <summary>問題一覧（未回答 {qs.length - answeredCount}問／見直し {active.flags.length}問）</summary>
+          <div className="qgrid">{qs.map((x, i) => <button key={x.id} aria-current={i === active.current} aria-label={`問${i + 1}${active.answers[x.id] ? ' 回答済み' : ' 未回答'}${active.flags.includes(x.id) ? ' 見直し' : ''}`} className={active.answers[x.id] ? 'done' : ''} onClick={() => upd((s) => { s.exams.find((e2) => e2.id === active.id)!.current = i; return s; })}>{i + 1}{active.flags.includes(x.id) ? '⚑' : ''}</button>)}</div>
+        </details>
       </div>
     </section>
   );
@@ -415,10 +437,10 @@ function LiteracyView({ onOpen, state, upd }: { onOpen: (id: string) => void; st
   return (
     <section><h1>AI教養</h1>
       <p role="group" aria-label="AI教養の表示切替">
-        <button className={tab === 'lessons' ? 'primary' : ''} onClick={() => setTab('lessons')}>教材</button>{' '}
-        <button className={tab === 'exercises' ? 'primary' : ''} onClick={() => setTab('exercises')}>実践演習</button>{' '}
-        <button className={tab === 'models' ? 'primary' : ''} onClick={() => setTab('models')}>モデル比較</button>{' '}
-        <button className={tab === 'news' ? 'primary' : ''} onClick={() => setTab('news')}>ニュース</button></p>
+        <button className={tab === 'lessons' ? 'primary' : ''} aria-pressed={tab === 'lessons'} onClick={() => setTab('lessons')}>教材</button>{' '}
+        <button className={tab === 'exercises' ? 'primary' : ''} aria-pressed={tab === 'exercises'} onClick={() => setTab('exercises')}>実践演習</button>{' '}
+        <button className={tab === 'models' ? 'primary' : ''} aria-pressed={tab === 'models'} onClick={() => setTab('models')}>モデル比較</button>{' '}
+        <button className={tab === 'news' ? 'primary' : ''} aria-pressed={tab === 'news'} onClick={() => setTab('news')}>ニュース</button></p>
       {tab === 'lessons' && LITERACY_SYLLABUS.map((node) => (
         <div key={node.id} className="card"><h2>{node.chapter}</h2><p className="muted">{node.title}</p>
           {publishedLessons.filter((l) => l.syllabusId === node.id).map((l) => <p key={l.id}><button className="touch" onClick={() => onOpen(l.id)}>{l.title}</button> {state.lessonsDone.includes(l.id) ? <span className="ok">学習済み</span> : ''}</p>)}
@@ -443,8 +465,8 @@ function LiteracyView({ onOpen, state, upd }: { onOpen: (id: string) => void; st
         <div className="card"><h2>主要モデルの比較（観点）</h2>
           <h3>比較の評価軸（実測するときの観点）</h3>
           <p>文章生成／推論／数学／プログラミング／情報検索／長文処理／画像理解／音声処理／マルチモーダル対応／エージェント用途／日本語能力／処理速度／料金／利用制限／プライバシー／セキュリティ／信頼性／用途適性。ベンチマークの数字は、評価方法・評価日時・モデルのバージョンを記録したうえで、自タスクの実測と組み合わせて読みます。</p>
-          <div className="tablewrap"><table><thead><tr><th>サービス</th><th>強み（概要）</th><th>制約</th><th>料金</th><th>プライバシー</th><th>適した用途</th><th>確認日</th></tr></thead>
-            <tbody>{MODEL_INFOS.map((m) => <tr key={m.id}><td><a href={m.source.url} target="_blank" rel="noreferrer">{m.name}</a><br /><span className="muted">{m.vendor}</span></td><td>{m.strengths}</td><td>{m.limits}</td><td>{m.pricingNote}</td><td>{m.privacyNote}</td><td>{m.bestFor}</td><td>{m.asOf}</td></tr>)}</tbody></table></div>
+          <div className="tablewrap wide"><table className="stack"><thead><tr><th>サービス</th><th>強み（概要）</th><th>制約</th><th>料金</th><th>プライバシー</th><th>適した用途</th><th>確認日</th></tr></thead>
+            <tbody>{MODEL_INFOS.map((m) => <tr key={m.id}><td><a href={m.source.url} target="_blank" rel="noreferrer">{m.name}</a><br /><span className="muted">{m.vendor}</span></td><td data-label="強み">{m.strengths}</td><td data-label="制約">{m.limits}</td><td data-label="料金">{m.pricingNote}</td><td data-label="プライバシー">{m.privacyNote}</td><td data-label="適した用途">{m.bestFor}</td><td data-label="確認日">{m.asOf}</td></tr>)}</tbody></table></div>
           <p className="muted">性能の絶対的な序列は示しません。料金・機能は変化するため、各サービスの公式ページで確認時点の条件を確認してください。古い情報は比較から外し、版ごとに差し替えます。</p>
         </div>
       )}
@@ -468,6 +490,7 @@ function LiteracyView({ onOpen, state, upd }: { onOpen: (id: string) => void; st
 
 function SettingsView({ state, upd }: { state: AppState; upd: (fn: (s: AppState) => AppState) => void }) {
   const [msg, setMsg] = useState('');
+  const [dataMsg, setDataMsg] = useState('');
   const [busy, setBusy] = useState(false);
   const set = state.settings;
   return (
@@ -477,19 +500,27 @@ function SettingsView({ state, upd }: { state: AppState; upd: (fn: (s: AppState)
           <label>文字サイズ <select value={set.fontSize} onChange={(e) => upd((s) => { s.settings.fontSize = e.target.value as 's' | 'm' | 'l'; return s; })}><option value="s">小</option><option value="m">中</option><option value="l">大</option></select></label>{' '}
           <label>表示密度 <select value={set.density} onChange={(e) => upd((s) => { s.settings.density = e.target.value as 'comfortable' | 'compact'; return s; })}><option value="comfortable">標準</option><option value="compact">コンパクト</option></select></label></p>
         <p><label><input type="checkbox" checked={set.reduceMotion} onChange={(e) => upd((s) => { s.settings.reduceMotion = e.target.checked; return s; })} /> アニメーションを抑制する</label></p>
-        <p><label>1日の学習目標（分） <input type="number" min={5} max={180} value={state.dailyGoalMin} onChange={(e) => upd((s) => { s.dailyGoalMin = Number(e.target.value); return s; })} style={{ width: 80 }} /></label></p>
+        <p><label>1日の学習目標（分） <input type="number" min={5} max={180} value={state.dailyGoalMin} onChange={(e) => { const v = e.target.valueAsNumber; if (Number.isFinite(v)) upd((s) => { s.dailyGoalMin = clampGoal(v); return s; }); }} style={{ width: 80 }} /></label></p>
       </div>
       <div className="card"><h2>教材の更新</h2>
-        <p>更新ボタンは、公開済みの最新教材マニフェストを取得して現在の版と比較します。教材データそのものの差し替えは、アプリを再読み込みした際に新しい版が読み込まれる形で行われ、学習記録は保持されます。GitHub上での教材の審査・公開は管理者が行う作業で、このアプリからは書き込みを行いません（手順は利用案内を参照）。</p>
         <button className="primary touch" disabled={busy} onClick={async () => { setBusy(true); const r = await checkUpdate(BUNDLED_CONTENT_VERSION); setMsg(r.message); upd((s) => { s.lastUpdateCheck = { at: new Date().toISOString(), result: r.status }; return s; }); setBusy(false); }}>教材の更新を確認</button>
         {msg && <p role="status">{msg}</p>}
-        <p className="muted">現在の教材バージョン：{BUNDLED_CONTENT_VERSION}（このアプリに同梱されている版）／シラバス：G2024#6以降適用版（2026-11-02確認）／試験制度：オンライン100分・会場120分、各145問程度（JDLA公式、{todayStr()}時点の表示）。新しい教材は新しい版のアプリとして公開され、再読み込みで反映されます。表示だけが先に変わることはありません。</p>
+        <p className="muted">現在の教材：{BUNDLED_CONTENT_VERSION}（このアプリに同梱）／シラバス：G2024#6以降適用版／試験制度：オンライン100分・会場120分、各145問程度（いずれもJDLA公式で{SYLLABUS_VERIFIED_AT}確認）。新しい版は再読み込みで反映され、学習記録は保持されます。</p>
       </div>
       <div className="card"><h2>学習記録の管理</h2>
-        <p>学習記録はこの端末のブラウザ内にのみ保存され、外部サーバーには送信されません。ブラウザのデータ削除や端末の故障で記録が失われる可能性があります。</p>
-        <p><button onClick={() => { const blob = new Blob([exportState(state)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'ai-learning-backup.json'; a.click(); }}>記録をエクスポート（JSON）</button>{' '}
+        <p><button onClick={() => { const blob = new Blob([exportState(state)], { type: 'application/json' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `ai-learning-backup-${todayStr()}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); }}>記録をエクスポート（JSON）</button>{' '}
+          <label className="filebtn">記録を読み込む<input type="file" accept="application/json,.json" onChange={async (e) => {
+            const f = e.target.files?.[0]; e.target.value = '';
+            if (!f) return;
+            const text = await f.text();
+            const next = parseState(text);
+            const valid = (() => { try { const p = JSON.parse(text) as { schemaVersion?: unknown }; return p.schemaVersion === 1; } catch { return false; } })();
+            if (!valid) { setDataMsg('読み込めませんでした。このアプリでエクスポートしたJSONファイルを選んでください。現在の記録は変更していません。'); return; }
+            if (confirm(`回答 ${next.answers.length}件・模試 ${next.exams.length}件の記録で、現在の記録（回答 ${state.answers.length}件）を置き換えますか？`)) { upd(() => next); setDataMsg('学習記録を読み込みました。'); }
+          }} /></label>{' '}
           <button onClick={() => { if (confirm('学習記録をすべて初期化しますか？この操作は元に戻せません。')) upd(() => defaultState()); }}>記録を初期化</button></p>
-        <p className="muted">初期化は確認のうえでのみ実行されます。通常の操作や教材更新で記録が初期化されることはありません。</p>
+        {dataMsg && <p role="status">{dataMsg}</p>}
+        <p className="muted">学習記録はこのブラウザ内にのみ保存され、外部には送信されません。ブラウザのデータ削除や端末の故障で失われるため、定期的なエクスポートをおすすめします。</p>
       </div>
     </section>
   );

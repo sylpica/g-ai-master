@@ -1,7 +1,7 @@
 {
-  "contentVersion": "2026.11.2",
+  "contentVersion": "2026.11.3",
   "examInfoVerifiedAt": "2026-11-02",
-  "notes": "AI教養にニュースタブを追加（一次情報のみ・3日ごとに取り込み）。人工知能基本計画の問題を追加し、問題は315問に。",
-  "publishedAt": "2026-11-02",
+  "notes": "二重監査（Claude Code側）: 復習画面の表示不整合・スマホのメニュー見切れ・模試の問題数入力などを修正。ニュース1件の表現を一次情報に合わせて訂正。",
+  "publishedAt": "2026-11-03",
   "syllabusVersion": "G2024#6-"
 }

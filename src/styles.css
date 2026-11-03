@@ -27,13 +27,14 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 /* ヘッダー（1行・コンパクト：ブランド＋モード切替＋ナビ） */
 header.top{position:sticky;top:0;z-index:10;background:var(--bg);border-bottom:1px solid var(--line)}
 .wrap{max-width:1120px;margin:0 auto;padding:0 16px}
-.top-in{display:flex;align-items:center;gap:10px;padding:6px 0}
+.top-in{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;padding:6px 0}
 .logo{font-weight:700;font-size:15px;white-space:nowrap;line-height:1.2}
 .logo::before{content:"";display:inline-block;width:.6em;height:.6em;border-radius:50%;background:var(--accent);margin-right:.45em}
 .seg{display:inline-flex;background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:3px;gap:2px;flex-shrink:0}
 .seg button{border:0;background:transparent;border-radius:999px;padding:3px 10px;min-height:28px;font-size:.86rem;font-weight:600;white-space:nowrap}
 .seg button.primary{background:var(--accent);color:var(--accent-fg)}
-nav.main{display:flex;gap:5px;flex:1;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:thin;padding:2px 0}
+/* ナビは横スクロールさせない（画面外のメニューが見えず文字も切れていたため）。幅が足りなければ折り返す */
+nav.main{display:flex;gap:5px;flex:1 1 auto;min-width:0;flex-wrap:wrap;padding:2px 0}
 nav.main button{flex:0 0 auto;white-space:nowrap;border-radius:999px;background:transparent;padding:4px 10px;font-size:.88rem;min-height:32px}
 nav.main button[aria-current="page"]{background:var(--accent);border-color:var(--accent);color:var(--accent-fg);font-weight:700}
 main{padding:12px 0 8px}
@@ -67,13 +68,14 @@ fieldset{counter-reset:opt}
 .flow button span{color:var(--muted);font-size:.88rem}
 .flow button::before{counter-increment:step;content:counter(step);display:inline-flex;align-items:center;justify-content:center;width:1.5em;height:1.5em;border-radius:50%;background:var(--accent);color:var(--accent-fg);font-weight:700;margin-bottom:.3rem}
 .tablewrap{overflow-x:auto;max-width:100%}
-table{border-collapse:collapse;width:100%;min-width:420px;font-size:.92rem}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+.tablewrap.wide table{min-width:560px}
 th,td{border:1px solid var(--line);padding:7px 11px;text-align:left;vertical-align:top}
 thead th{background:var(--panel2)}
 tbody tr:nth-child(even){background:var(--panel2)}
 details{border-top:1px solid var(--line);padding:8px 0}
 summary{cursor:pointer}
-input,select{font:inherit;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:var(--radius-s);padding:8px 10px}
+input,select{max-width:100%;font:inherit;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:var(--radius-s);padding:8px 10px}
 .bar{height:8px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);overflow:hidden}
 .bar i{display:block;height:100%;background:var(--accent);border-radius:999px;transition:width .3s}
 [data-density="compact"] .card{padding:10px 12px}
@@ -81,10 +83,35 @@ input,select{font:inherit;color:var(--fg);background:var(--card);border:1px soli
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 [data-motion="reduce"] *{transition:none!important;animation:none!important}
 .touch{min-height:44px}
+/* 教材一覧：PCでは横幅を使って2列に並べ、縦スクロールを減らす */
+.grid.lessons{grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));margin-bottom:14px}
+.grid.lessons .card p{margin:6px 0}
+/* 模試の問題一覧（未回答・見直しを一覧で確認） */
+.qindex{margin-top:14px}
+.qgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(48px,1fr));gap:6px;margin-top:8px}
+.qgrid button{min-height:44px;padding:4px 2px;font-variant-numeric:tabular-nums}
+.qgrid button.done{background:var(--accent-soft);border-color:var(--accent)}
+.qgrid button[aria-current="true"]{outline:2px solid var(--accent);outline-offset:1px;font-weight:700}
+/* ファイル読込はラベルをボタン風に（入力本体は視覚的に隠すがキーボード操作は可能） */
+.filebtn{position:relative;display:inline-flex;align-items:center;min-height:40px;padding:8px 14px;border:1px solid var(--line);border-radius:var(--radius-s);background:var(--card);cursor:pointer}
+.filebtn input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+.filebtn:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+p,li,h1,h2,h3,summary,td,th{overflow-wrap:anywhere}
+main{padding-bottom:env(safe-area-inset-bottom)}
 ul{padding-left:1.2rem}
 @media (max-width:640px){
   .wrap{padding:0 10px}
+  /* スマートフォン：全メニューを常に見える4列グリッドにし、ヘッダーは固定しない（本文の表示領域を確保） */
+  header.top{position:static}
+  nav.main{flex-basis:100%;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
+  /* 列の多い表は縦積みのカード表示にして横スクロールをなくす */
+  table.stack{min-width:0!important}
+  table.stack thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  table.stack,table.stack tbody,table.stack tr,table.stack td{display:block;width:100%}
+  table.stack tr{border:1px solid var(--line);border-radius:var(--radius-s);margin:0 0 10px;padding:4px 0}
+  table.stack td{border:0;padding:4px 10px}
+  table.stack td[data-label]::before{content:attr(data-label);display:block;font-size:.8rem;font-weight:700;color:var(--muted)}
+  nav.main button{padding:4px 2px;font-size:.8rem;white-space:normal;line-height:1.25;min-height:36px}
   h1{font-size:1.25rem}
   .logo{font-size:14px}
-  table{min-width:330px}
 }
