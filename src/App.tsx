@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import type { AppState, ExamSession, Lesson, Mode, Question } from './types';
+import React, { useEffect, useMemo, useState } from 'react';
+import type { AppState, ExamSession, Lesson, Mode, Question, SyllabusNode } from './types';
 import { G_SYLLABUS, LITERACY_SYLLABUS, SYLLABUS_VERIFIED_AT, syllabusById } from './data/syllabus';
 import { publishedLessons } from './data/lessons';
 import { publishedQuestions } from './data/questions';
@@ -72,11 +72,14 @@ export default function App() {
     return correct;
   };
 
-  const nav: { id: View; label: string }[] = [
-    { id: 'home', label: 'ホーム' }, { id: 'lessons', label: '教材' }, { id: 'practice', label: '演習' },
-    { id: 'exam', label: '模擬試験' }, { id: 'review', label: `復習${due.length ? `（${due.length}）` : ''}` },
-    { id: 'analysis', label: '分析' }, { id: 'literacy', label: 'AI教養' }, { id: 'settings', label: '設定・更新' },
+  // メニューはモードごとに必要なものだけ。AI教養の教材・実践演習・モデル比較・ニュースは「教材」画面のタブにまとめる
+  const lessonsView: View = isG ? 'lessons' : 'literacy';
+  const nav: { id: View; label: string; badge?: number }[] = [
+    { id: 'home', label: 'ホーム' }, { id: lessonsView, label: '教材' }, { id: 'practice', label: '演習' },
+    ...(isG ? [{ id: 'exam' as View, label: '模試' }] : []),
+    { id: 'review', label: '復習', badge: due.length }, { id: 'analysis', label: '分析' }, { id: 'settings', label: '設定' },
   ];
+  const go = (v: View) => { setLessonId(null); setView(v); };
 
   return (
     <>
@@ -88,8 +91,13 @@ export default function App() {
             <button className={state.mode === 'g' ? 'primary' : ''} aria-pressed={state.mode === 'g'} onClick={() => { upd((s) => { s.mode = 'g'; return s; }); setView('home'); setLessonId(null); }}>G検定取得</button>
             <button className={state.mode === 'literacy' ? 'primary' : ''} aria-pressed={state.mode === 'literacy'} onClick={() => { upd((s) => { s.mode = 'literacy'; return s; }); setView('literacy'); setLessonId(null); }}>AI教養</button>
           </div>
-          <nav className="main" aria-label="主要メニュー">
-            {nav.map((n) => <button key={n.id} aria-current={view === n.id ? 'page' : undefined} onClick={() => setView(n.id)}>{n.label}</button>)}
+          <nav className="main" aria-label="主要メニュー" style={{ '--n': nav.length } as React.CSSProperties}>
+            {nav.map((n) => (
+              <button key={n.id} aria-current={!lessonId && (view === n.id || (n.id === lessonsView && (view === 'lessons' || view === 'literacy'))) ? 'page' : undefined}
+                aria-label={n.badge ? `${n.label}（${n.badge}件）` : undefined} onClick={() => go(n.id)}>
+                {n.label}{n.badge ? <span className="badge" aria-hidden="true">{n.badge}</span> : null}
+              </button>
+            ))}
           </nav>
         </div>
       </div></header>
@@ -213,27 +221,34 @@ function LessonsView({ mode, state, onOpen, upd }: { mode: Mode; state: AppState
       : syllabus;
   return (
     <section><h1>{mode === 'g' ? 'G検定 教材' : 'AI教養 教材'}</h1>
-      <p><label>教材を検索 <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="タイトル・要点・分野で検索" /></label>{' '}
+      <p className="controls"><label>検索 <input type="search" aria-label="教材を検索" value={q} onChange={(e) => setQ(e.target.value)} placeholder="用語・分野" /></label>{' '}
         <label><input type="checkbox" checked={bmOnly} onChange={(e) => setBmOnly(e.target.checked)} /> ブックマークのみ</label>{' '}
         <label>学習順序 <select value={state.settings.order} onChange={(e) => upd((s) => { s.settings.order = e.target.value as AppState['settings']['order']; return s; })}>
           <option value="syllabus">公式シラバス順</option><option value="recommended">推奨順（未学習を前提順に）</option>
           <option value="weak">弱点優先（分析を参照）</option><option value="free">自由学習（前提表示なし）</option></select></label></p>
       {lessons.length === 0 && <p className="muted" role="status">該当する教材がありません。検索語や「ブックマークのみ」を変えてお試しください。</p>}
-      <div className="grid lessons">
-      {nodes.map((node) => {
-        const ls = lessons.filter((l) => l.syllabusId === node.id);
-        if ((q || bmOnly) && ls.length === 0) return null;
+      <LessonList items={nodes.flatMap((node) => lessons.filter((l) => l.syllabusId === node.id).map((l) => ({ lesson: l, node })))}
+        state={state} onOpen={onOpen} showPrereq={order === 'recommended'} />
+    </section>
+  );
+}
+
+function LessonList({ items, state, onOpen, showPrereq }: { items: { lesson: Lesson; node: SyllabusNode }[]; state: AppState; onOpen: (id: string) => void; showPrereq?: boolean }) {
+  return (
+    <ul className="lesson-list">
+      {items.map(({ lesson: l, node }) => {
+        const done = state.lessonsDone.includes(l.id);
+        const bm = state.bookmarks.includes(`lesson:${l.id}`);
         return (
-          <div key={node.id} className="card"><h2>{node.chapter}</h2>
-            <p className="muted">{node.title}</p>
-            {order !== 'free' && node.prerequisites.length > 0 && <p className="muted">前提：{node.prerequisites.map((p) => syllabusById(p)?.chapter).join('、')}</p>}
-            {ls.map((l) => <p key={l.id}><button className="touch" onClick={() => onOpen(l.id)}>{l.title}</button> {state.lessonsDone.includes(l.id) ? <span className="ok">学習済み</span> : ''}</p>)}
-            {ls.length === 0 && <p className="muted">教材は今後追加されます。</p>}
-          </div>
+          <li key={l.id}><button className="lesson-row" onClick={() => onOpen(l.id)}>
+            <span className="ln" aria-hidden="true">{node.order}</span>
+            <span className="lt"><b>{l.title}</b><small>{node.title}</small>
+              {showPrereq && node.prerequisites.length > 0 && <small>前提：{node.prerequisites.map((p) => syllabusById(p)?.chapter).join('、')}</small>}</span>
+            <span className="lm">{bm && <span aria-label="ブックマーク済み">★</span>}{done && <span className="ok">学習済み</span>}</span>
+          </button></li>
         );
       })}
-      </div>
-    </section>
+    </ul>
   );
 }
 
@@ -292,24 +307,25 @@ function PracticeView({ questions: liveQuestions, onAnswer, reviewMode }: { mode
           <button className="primary touch" onClick={() => { setRound({ answered: [], correct: 0 }); setIdx(0); setSel([]); setStarted(Date.now()); }}>もう1周する</button>
         </div>
       ) : q && <div className="card" key={q.id}>
-        <p className="muted">{syllabusById(q.syllabusId)?.chapter}／難易度{q.difficulty}／{q.type === 'multi' ? '複数選択' : q.type === 'truefalse' ? '正誤判定' : '単一選択'}／回答済み {round.answered.length}／{pool.length}問</p>
-        <div className="bar" role="progressbar" aria-valuenow={pool.length ? Math.round((round.answered.length / pool.length) * 100) : 0} aria-valuemin={0} aria-valuemax={100} aria-label="この範囲の進捗" style={{ margin: '0 0 12px' }}><i style={{ width: `${pool.length ? (round.answered.length / pool.length) * 100 : 0}%` }} /></div>
+        <p className="muted meta">{syllabusById(q.syllabusId)?.chapter}／難易度{q.difficulty}{q.type === 'multi' ? '／複数選択' : q.type === 'truefalse' ? '／正誤判定' : ''}<span>{round.answered.length}／{pool.length}問</span></p>
+        <div className="bar" role="progressbar" aria-valuenow={pool.length ? Math.round((round.answered.length / pool.length) * 100) : 0} aria-valuemin={0} aria-valuemax={100} aria-label="この範囲の進捗" style={{ margin: '0 0 10px' }}><i style={{ width: `${pool.length ? (round.answered.length / pool.length) * 100 : 0}%` }} /></div>
         <fieldset style={{ border: 0, padding: 0, margin: 0 }}><legend><h2 style={{ display: 'inline' }}>{q.stem}</h2></legend>
         {q.choices.map((c, i) => (
           <button key={i} className={`choice touch ${sel.includes(i) ? 'sel' : ''} ${result !== null && q.answer.includes(i) ? 'right' : ''} ${result === false && sel.includes(i) && !q.answer.includes(i) ? 'wrong' : ''}`}
-            aria-pressed={sel.includes(i)} onClick={() => toggle(i)}><span>{c}</span></button>
+            aria-pressed={sel.includes(i)} aria-disabled={result !== null} onClick={() => toggle(i)}>
+            <span className="ctext">{c}{result !== null && <small className="reason">{q.answer.includes(i) ? '正答：' : ''}{q.choiceReasons[i]}</small>}</span></button>
         ))}</fieldset>
         {result === null ? (
           <button className="primary touch" disabled={sel.length === 0} onClick={() => { const c = onAnswer(q, sel, Math.round((Date.now() - started) / 1000)); setResult(c); setRound((r) => ({ answered: [...r.answered, q.id], correct: r.correct + (c ? 1 : 0) })); }}>回答する</button>
         ) : (
           <div role="status">
-            <p className={result ? 'ok' : 'bad'}>{result ? '正解です。' : '不正解です。'}</p>
+            <div className="fb" ref={(el) => { if (el && el.dataset.shown !== q.id) { el.dataset.shown = q.id; el.scrollIntoView({ block: 'nearest' }); } }}>
+              <p className={result ? 'ok' : 'bad'}><b>{result ? '正解です。' : '不正解です。'}</b></p>
+              <button className="primary touch" onClick={() => { setIdx(idx + 1); setSel([]); setResult(null); setStarted(Date.now()); window.scrollTo(0, 0); }}>次の問題</button>
+            </div>
             <h3>基礎解説</h3><p>{q.basic}</p>
             <h3>詳細解説</h3><p>{q.detail}</p>
-            <h3>選択肢ごとの判定理由</h3>
-            <ul>{q.choices.map((c, i) => <li key={i}>{String.fromCharCode(65 + i)}. {c} — {q.choiceReasons[i]}{q.answer.includes(i) ? '（正答）' : ''}</li>)}</ul>
-            <p className="muted">出典：{q.sources.map((s) => s.title).join('、')}／最終検証 {q.verifiedAt}</p>
-            <button className="primary touch" onClick={() => { setIdx(idx + 1); setSel([]); setResult(null); setStarted(Date.now()); window.scrollTo(0, 0); }}>次の問題</button>
+            <p className="muted small">出典：{q.sources.map((s) => s.title).join('、')}／最終検証 {q.verifiedAt}</p>
           </div>
         )}
       </div>}
@@ -363,38 +379,43 @@ function ExamView({ state, gQuestions, upd, recordAnswer }: { state: AppState; g
   if (!active) {
     return (
       <section><h1>模擬試験</h1>
+        <div className="grid exam-start">
+          <div className="card"><h2>フル模試</h2>
+            {gQuestions.length >= EXAM_FULL_COUNT ? (
+              <><p className="small">{EXAM_FULL_COUNT}問／{modeKind === 'online' ? '100分（オンライン形式）' : '120分（会場形式）'}</p>
+                <p className="controls"><label>形式 <select value={modeKind} onChange={(e) => setModeKind(e.target.value as 'online' | 'onsite')}><option value="online">オンライン（100分）</option><option value="onsite">会場（120分）</option></select></label>
+                <button className="primary touch" onClick={() => start('full', shuffle(gQuestions, Date.now()).slice(0, EXAM_FULL_COUNT), modeKind === 'online' ? 6000 : 7200)}>開始</button></p></>
+            ) : (
+              <p role="note">検証済み問題が{gQuestions.length}問のため利用できません（{EXAM_FULL_COUNT}問に達すると有効化）。</p>
+            )}
+          </div>
+          <div className="card"><h2>短縮模試</h2><p className="small">10問／15分</p>
+            <button className="primary touch" onClick={() => start('short', shuffle(gQuestions, Date.now() + 7).slice(0, 10), 900)}>開始</button></div>
+          <div className="card"><h2>分野別・カスタム</h2>
+            <p className="controls"><label>分野 <select value={field} onChange={(e) => setField(e.target.value)}>{G_SYLLABUS.map((s) => <option key={s.id} value={s.id}>{s.chapter}</option>)}</select></label>
+              <label>問題数 <input type="number" min={1} max={30} value={count} onChange={(e) => setCount(Number(e.target.value))} onBlur={() => setCount(safeCount)} style={{ width: 70 }} /></label></p>
+            <p className="controls"><button className="primary touch" onClick={() => { const qs = shuffle(gQuestions.filter((x) => x.syllabusId === field), Date.now() + 13).slice(0, safeCount); start('field', qs, qs.length * 90); }}>分野別を開始</button>
+              <button className="touch" onClick={() => { const qs = shuffle(gQuestions, Date.now() + 29).slice(0, safeCount); start('custom', qs, qs.length * 90); }}>カスタム（全分野）</button></p>
+          </div>
+        </div>
         {lastSubmitted && (() => {
           const rqs = lastSubmitted.questionIds.map((id) => gQuestions.find((x) => x.id === id)!).filter(Boolean);
           const correctCount = rqs.filter((x) => judge(lastSubmitted.answers[x.id] ?? [], x.answer)).length;
           return (
             <div className="card"><h2>直近の結果（{EXAM_KIND_LABEL[lastSubmitted.kind]}）</h2>
               <p>正解 {correctCount}／{rqs.length}問（{rqs.length ? Math.round((correctCount / rqs.length) * 100) : 0}%）／一時停止 {lastSubmitted.pauses.length}回{lastSubmitted.strict ? '' : '（一時停止したため本番条件の完全再現ではありません）'}</p>
-              {rqs.map((x, i) => (
-                <details key={x.id}><summary>問{i + 1}. {x.stem} — {judge(lastSubmitted.answers[x.id] ?? [], x.answer) ? '正解' : '不正解'}</summary>
-                  <p>{x.basic}</p><p>{x.detail}</p>
-                  <ul>{x.choices.map((c, ci) => <li key={ci}>{String.fromCharCode(65 + ci)}. {c} — {x.choiceReasons[ci]}{x.answer.includes(ci) ? '（正答）' : ''}</li>)}</ul>
-                </details>
-              ))}
+              <details className="results"><summary>問題ごとの解説（{rqs.length}問）</summary>
+                {rqs.map((x, i) => (
+                  <details key={x.id}><summary>問{i + 1}. {judge(lastSubmitted.answers[x.id] ?? [], x.answer) ? '○' : '×'} {x.stem}</summary>
+                    <ul>{x.choices.map((c, ci) => <li key={ci}><b>{String.fromCharCode(65 + ci)}.</b> {c}{x.answer.includes(ci) ? '（正答）' : ''}{(lastSubmitted.answers[x.id] ?? []).includes(ci) ? '（あなたの回答）' : ''}<br /><span className="muted small">{x.choiceReasons[ci]}</span></li>)}</ul>
+                    <p>{x.basic}</p><p>{x.detail}</p>
+                  </details>
+                ))}
+              </details>
             </div>
           );
         })()}
-        <div className="card"><h2>フル模擬試験</h2>
-          {gQuestions.length >= EXAM_FULL_COUNT ? (
-            <><p>公式条件（{modeKind === 'online' ? 'オンライン：100分' : '会場：120分'}／{EXAM_FULL_COUNT}問）で実施します。</p>
-              <label>受験方式 <select value={modeKind} onChange={(e) => setModeKind(e.target.value as 'online' | 'onsite')}><option value="online">オンライン（100分）</option><option value="onsite">会場（120分）</option></select></label>{' '}
-              <button className="primary touch" onClick={() => start('full', shuffle(gQuestions, Date.now()).slice(0, EXAM_FULL_COUNT), modeKind === 'online' ? 6000 : 7200)}>開始</button></>
-          ) : (
-            <p role="note">現在は利用できません。検証済み問題が{gQuestions.length}問しかなく、公式の{EXAM_FULL_COUNT}問構成を不足分で水増しすることはしません。問題プールが{EXAM_FULL_COUNT}問に達した時点で有効化されます。</p>
-          )}
-        </div>
-        <div className="card"><h2>短縮模擬試験</h2><p>10問／目安15分。提出まで解説は表示されません。</p>
-          <button className="primary touch" onClick={() => start('short', shuffle(gQuestions, Date.now() + 7).slice(0, 10), 900)}>開始</button></div>
-        <div className="card"><h2>分野別／カスタム模擬試験</h2>
-          <p><label>分野 <select value={field} onChange={(e) => setField(e.target.value)}>{G_SYLLABUS.map((s) => <option key={s.id} value={s.id}>{s.chapter}</option>)}</select></label>{' '}
-            <label>問題数 <input type="number" min={1} max={30} value={count} onChange={(e) => setCount(Number(e.target.value))} onBlur={() => setCount(safeCount)} style={{ width: 80 }} /></label></p>
-          <button className="primary touch" onClick={() => { const qs = shuffle(gQuestions.filter((x) => x.syllabusId === field), Date.now() + 13).slice(0, safeCount); start('field', qs, qs.length * 90); }}>分野別を開始</button>{' '}
-          <button className="touch" onClick={() => { const qs = shuffle(gQuestions, Date.now() + 29).slice(0, safeCount); start('custom', qs, qs.length * 90); }}>カスタム（全分野）</button>
-        </div>
+        <p className="muted small">解説は提出後に表示されます。一時停止せずにページを閉じても、その間の時間は経過します（本番と同じ扱い）。一時停止した回は本番条件とは区別して記録されます。</p>
       </section>
     );
   }
@@ -436,19 +457,17 @@ function LiteracyView({ onOpen, state, upd }: { onOpen: (id: string) => void; st
   const [tab, setTab] = useState<'lessons' | 'exercises' | 'models' | 'news'>('lessons');
   return (
     <section><h1>AI教養</h1>
-      <p role="group" aria-label="AI教養の表示切替">
-        <button className={tab === 'lessons' ? 'primary' : ''} aria-pressed={tab === 'lessons'} onClick={() => setTab('lessons')}>教材</button>{' '}
-        <button className={tab === 'exercises' ? 'primary' : ''} aria-pressed={tab === 'exercises'} onClick={() => setTab('exercises')}>実践演習</button>{' '}
-        <button className={tab === 'models' ? 'primary' : ''} aria-pressed={tab === 'models'} onClick={() => setTab('models')}>モデル比較</button>{' '}
-        <button className={tab === 'news' ? 'primary' : ''} aria-pressed={tab === 'news'} onClick={() => setTab('news')}>ニュース</button></p>
-      {tab === 'lessons' && LITERACY_SYLLABUS.map((node) => (
-        <div key={node.id} className="card"><h2>{node.chapter}</h2><p className="muted">{node.title}</p>
-          {publishedLessons.filter((l) => l.syllabusId === node.id).map((l) => <p key={l.id}><button className="touch" onClick={() => onOpen(l.id)}>{l.title}</button> {state.lessonsDone.includes(l.id) ? <span className="ok">学習済み</span> : ''}</p>)}
-        </div>))}
-      {tab === 'exercises' && EXERCISES.map((ex) => {
+      <div role="group" aria-label="AI教養の表示切替" className="seg tabs">
+        {([['lessons', '教材'], ['exercises', '実践演習'], ['models', 'モデル比較'], ['news', 'ニュース']] as const).map(([id, label]) => (
+          <button key={id} className={tab === id ? 'primary' : ''} aria-pressed={tab === id} onClick={() => setTab(id)}>{label}</button>
+        ))}
+      </div>
+      {tab === 'lessons' && <LessonList items={LITERACY_SYLLABUS.flatMap((node) => publishedLessons.filter((l) => l.syllabusId === node.id).map((l) => ({ lesson: l, node })))} state={state} onOpen={onOpen} />}
+      {tab === 'exercises' && <div className="stack-list">{EXERCISES.map((ex) => {
         const checked = state.exerciseChecks[ex.id] ?? [];
         return (
-          <div key={ex.id} className="card"><h2>{ex.title}</h2>
+          <details key={ex.id} className="card ex">
+            <summary><b>{ex.title}</b><span className="muted">達成 {checked.length}／{ex.rubric.length}</span></summary>
             <p>{ex.background}</p><p><b>到達目標：</b>{ex.goal}</p>
             <p><b>制約：</b>{ex.constraints.join('／')}</p>
             <h3>実施手順</h3><ol>{ex.steps.map((s) => <li key={s}>{s}</li>)}</ol>
@@ -457,31 +476,37 @@ function LiteracyView({ onOpen, state, upd }: { onOpen: (id: string) => void; st
             <p><b>模範的な考え方：</b>{ex.modelThinking}</p>
             <p><b>失敗例：</b>{ex.failureExample}</p>
             <p><b>改善例：</b>{ex.improvementExample}</p>
-            <p className="muted">参考：{ex.sources.map((s) => s.title).join('、')}／達成 {checked.length}／{ex.rubric.length}（自己評価）</p>
-          </div>
+            <p className="muted small">参考：{ex.sources.map((s) => s.title).join('、')}</p>
+          </details>
         );
-      })}
+      })}</div>}
       {tab === 'models' && (
-        <div className="card"><h2>主要モデルの比較（観点）</h2>
-          <h3>比較の評価軸（実測するときの観点）</h3>
-          <p>文章生成／推論／数学／プログラミング／情報検索／長文処理／画像理解／音声処理／マルチモーダル対応／エージェント用途／日本語能力／処理速度／料金／利用制限／プライバシー／セキュリティ／信頼性／用途適性。ベンチマークの数字は、評価方法・評価日時・モデルのバージョンを記録したうえで、自タスクの実測と組み合わせて読みます。</p>
-          <div className="tablewrap wide"><table className="stack"><thead><tr><th>サービス</th><th>強み（概要）</th><th>制約</th><th>料金</th><th>プライバシー</th><th>適した用途</th><th>確認日</th></tr></thead>
-            <tbody>{MODEL_INFOS.map((m) => <tr key={m.id}><td><a href={m.source.url} target="_blank" rel="noreferrer">{m.name}</a><br /><span className="muted">{m.vendor}</span></td><td data-label="強み">{m.strengths}</td><td data-label="制約">{m.limits}</td><td data-label="料金">{m.pricingNote}</td><td data-label="プライバシー">{m.privacyNote}</td><td data-label="適した用途">{m.bestFor}</td><td data-label="確認日">{m.asOf}</td></tr>)}</tbody></table></div>
-          <p className="muted">性能の絶対的な序列は示しません。料金・機能は変化するため、各サービスの公式ページで確認時点の条件を確認してください。古い情報は比較から外し、版ごとに差し替えます。</p>
+        <div>
+          <div className="grid models">{MODEL_INFOS.map((m) => (
+            <article key={m.id} className="card">
+              <h2><a href={m.source.url} target="_blank" rel="noreferrer">{m.name}</a></h2>
+              <p className="muted small">{m.vendor}／{m.asOf} 確認</p>
+              <p><b>主なモデル：</b>{m.lineup}</p>
+              <p><b>適した用途：</b>{m.bestFor}</p>
+              <details><summary>強み・制約・料金・プライバシー</summary>
+                <dl className="kv"><dt>強み</dt><dd>{m.strengths}</dd><dt>制約</dt><dd>{m.limits}</dd><dt>料金</dt><dd>{m.pricingNote}</dd><dt>プライバシー</dt><dd>{m.privacyNote}</dd></dl>
+              </details>
+            </article>
+          ))}</div>
+          <p className="muted small">比較の評価軸：文章生成／推論／数学／プログラミング／情報検索／長文処理／画像理解／音声処理／マルチモーダル対応／エージェント用途／日本語能力／処理速度／料金／利用制限／プライバシー／セキュリティ／信頼性／用途適性。ベンチマークの数字は評価方法・評価日時・モデルの版を記録し、自タスクでの実測と組み合わせて読みます。性能の絶対的な序列は示しません。料金・機能は変わるため、利用前に各公式ページで確認してください。</p>
         </div>
       )}
       {tab === 'news' && (
-        <div>
-          <p className="muted">公式発表・公的機関などの一次情報だけを、3日に1回程度の頻度で確認して追加しています（最終取り込み：{NEWS_LAST_ADDED}）。超重要なものは「超重要」と表示し、内容を確認したうえで問題や教材にも取り込みます。</p>
-          {NEWS_ITEMS.map((n) => (
-            <div key={n.id} className="card">
-              <p className="muted">{n.date}／{n.category}{n.importance === 'major' ? '／超重要' : ''}</p>
-              <h2>{n.title}</h2>
+        <div className="stack-list">
+          {NEWS_ITEMS.map((n, i) => (
+            <details key={n.id} className="card news" open={i === 0}>
+              <summary><span className="muted small">{n.date}／{n.category}{n.importance === 'major' ? <b className="major">超重要</b> : null}</span><b className="nt">{n.title}</b></summary>
               <p>{n.summary}</p>
               {n.incorporated && <p><b>学習への取り込み：</b>{n.incorporated}</p>}
-              <p className="muted">出典：<a href={n.source.url} target="_blank" rel="noreferrer">{n.source.title}</a></p>
-            </div>
+              <p className="muted small">出典：<a href={n.source.url} target="_blank" rel="noreferrer">{n.source.title}</a></p>
+            </details>
           ))}
+          <p className="muted small">公式発表・公的機関などの一次情報だけを、3日に1回程度の頻度で確認して追加しています（最終取り込み：{NEWS_LAST_ADDED}）。超重要なものは内容を確認したうえで問題や教材にも取り込みます。</p>
         </div>
       )}
     </section>

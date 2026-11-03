@@ -81,6 +81,8 @@ export interface ModelInfo {
   name: string;
   vendor: string;
   asOf: string;
+  /** 確認日時点の主なモデル・提供形態（一次情報で確認できたものだけ） */
+  lineup: string;
   source: SourceRef;
   strengths: string;
   limits: string;
@@ -93,7 +95,7 @@ export type NewsCategory = 'モデル' | 'サービス動向' | '制度・政策
 
 export interface NewsItem {
   id: string;
-  /** 発表・公表日（YYYY-MM-DD） */
+  /** 発表・公表日（YYYY-MM-DD）。発表日が特定できない日程情報などは、一次情報で内容を確認した日 */
   date: string;
   title: string;
   /** 何が起きたか＋学習上の意味。一次情報で確認できる範囲だけを書く */

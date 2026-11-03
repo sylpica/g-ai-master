@@ -35,7 +35,8 @@ header.top{position:sticky;top:0;z-index:10;background:var(--bg);border-bottom:1
 .seg button.primary{background:var(--accent);color:var(--accent-fg)}
 /* ナビは横スクロールさせない（画面外のメニューが見えず文字も切れていたため）。幅が足りなければ折り返す */
 nav.main{display:flex;gap:5px;flex:1 1 auto;min-width:0;flex-wrap:wrap;padding:2px 0}
-nav.main button{flex:0 0 auto;white-space:nowrap;border-radius:999px;background:transparent;padding:4px 10px;font-size:.88rem;min-height:32px}
+nav.main button{position:relative;flex:0 0 auto;white-space:nowrap;border-radius:999px;background:transparent;padding:4px 12px;font-size:.88rem;min-height:32px}
+.badge{display:inline-block;min-width:1.4em;padding:0 .35em;margin-left:.3em;border-radius:999px;background:var(--accent-2);color:var(--card);font-size:.72rem;font-weight:700;line-height:1.4;text-align:center}
 nav.main button[aria-current="page"]{background:var(--accent);border-color:var(--accent);color:var(--accent-fg);font-weight:700}
 main{padding:12px 0 8px}
 footer{border-top:1px solid var(--line);padding:10px 0 26px;margin-top:24px;color:var(--muted);font-size:.9rem}
@@ -58,12 +59,12 @@ fieldset{counter-reset:opt}
 .choice.sel::before{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
 .choice.right{border-color:var(--ok);background:var(--ok-soft)}
 .choice.wrong{border-color:var(--bad);background:var(--bad-soft)}
-.kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:8px}
 .kpi>div{background:var(--panel2);border:1px solid var(--line);border-radius:var(--radius-s);padding:10px 12px;font-size:.9rem}
 .kpi>div b{font-size:1.3rem;display:block;line-height:1.2;font-weight:700}
 .flow{display:flex;flex-wrap:wrap;gap:8px;list-style:none;margin:0;padding:0;counter-reset:step}
-.flow li{flex:1 1 150px}
-.flow button{width:100%;height:100%;text-align:left;border-radius:var(--radius-s);padding:.6rem .8rem;background:var(--panel2)}
+.flow li{flex:1 1 130px}
+.flow button{width:100%;height:100%;text-align:left;border-radius:var(--radius-s);padding:.45rem .7rem;background:var(--panel2)}
 .flow button b{display:block;font-size:1rem}
 .flow button span{color:var(--muted);font-size:.88rem}
 .flow button::before{counter-increment:step;content:counter(step);display:inline-flex;align-items:center;justify-content:center;width:1.5em;height:1.5em;border-radius:50%;background:var(--accent);color:var(--accent-fg);font-weight:700;margin-bottom:.3rem}
@@ -83,6 +84,48 @@ input,select{max-width:100%;font:inherit;color:var(--fg);background:var(--card);
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 [data-motion="reduce"] *{transition:none!important;animation:none!important}
 .touch{min-height:44px}
+.small{font-size:.86rem}
+/* 教材一覧：1教材＝1行のボタン。PCでは2列 */
+.lesson-list{list-style:none;margin:0 0 14px;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,420px),1fr));gap:8px}
+.lesson-row{display:flex;align-items:center;gap:10px;width:100%;height:100%;text-align:left;padding:10px 12px;border-radius:var(--radius-s)}
+.lesson-row .ln{flex:0 0 auto;width:1.9em;height:1.9em;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:var(--panel2);font-weight:700;font-size:.9rem}
+.lesson-row .lt{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:2px}
+.lesson-row .lt small{color:var(--muted);font-size:.8rem;line-height:1.45}
+.lesson-row .lm{flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;font-size:.8rem;gap:2px}
+.controls{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center}
+.controls input[type=search]{width:12em}
+/* 演習：回答後は選択肢の下に判定理由を表示（選択肢の文を繰り返す一覧を作らない） */
+.choice .ctext{display:flex;flex-direction:column;gap:4px;min-width:0}
+.choice .reason{color:var(--muted);font-size:.86rem;line-height:1.5}
+.choice[aria-disabled="true"]{cursor:default}
+.fb{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:4px 0 2px;scroll-margin-bottom:80px}
+.fb p{margin:0}
+.meta{display:flex;justify-content:space-between;gap:8px;margin:0 0 6px;font-size:.88rem}
+/* AI教養のタブ */
+.seg.tabs{display:flex;width:max-content;max-width:100%;flex-wrap:wrap;border-radius:14px;margin:0 0 12px}
+.seg.tabs button{padding:6px 12px;min-height:36px;font-size:.9rem}
+.stack-list>.card{margin-bottom:10px}
+details.ex summary{display:flex;justify-content:space-between;gap:10px;align-items:baseline;list-style:none}
+details.ex summary::-webkit-details-marker{display:none}
+details.ex summary b::before{content:"▸ ";color:var(--muted)}
+details.ex[open] summary b::before{content:"▾ "}
+details.ex[open] summary{margin-bottom:8px}
+.major{margin-left:.4em;color:var(--accent-2)}
+.grid.models{grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));margin-bottom:12px}
+.grid.models p{margin:6px 0}
+dl.kv{margin:8px 0 0;display:grid;grid-template-columns:max-content minmax(0,1fr);gap:4px 10px}
+dl.kv dt{font-weight:700;color:var(--muted);font-size:.86rem}
+dl.kv dd{margin:0}
+details.news summary{display:flex;flex-direction:column;gap:2px;cursor:pointer;list-style:none}
+details.news summary::-webkit-details-marker{display:none}
+details.news summary .nt::before{content:"▸ ";color:var(--muted)}
+details.news[open] summary .nt::before{content:"▾ "}
+details.news[open] summary{margin-bottom:6px}
+.controls label{display:inline-flex;align-items:center;gap:4px;min-width:0;max-width:100%}
+.controls select{min-width:0;flex:1 1 auto}
+.grid.exam-start{margin-bottom:14px;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))}
+.exam-start .card p{margin:4px 0 8px}
+details.results>details{padding:6px 0}
 /* 教材一覧：PCでは横幅を使って2列に並べ、縦スクロールを減らす */
 .grid.lessons{grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));margin-bottom:14px}
 .grid.lessons .card p{margin:6px 0}
@@ -101,9 +144,12 @@ main{padding-bottom:env(safe-area-inset-bottom)}
 ul{padding-left:1.2rem}
 @media (max-width:640px){
   .wrap{padding:0 10px}
-  /* スマートフォン：全メニューを常に見える4列グリッドにし、ヘッダーは固定しない（本文の表示領域を確保） */
-  header.top{position:static}
-  nav.main{flex-basis:100%;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
+  /* スマートフォン：上部バーはタイトルとモード切替だけの1行にし、主要メニューは親指で押しやすい画面下部に固定する */
+  .top-in{flex-wrap:nowrap;justify-content:space-between;padding:5px 0}
+  nav.main{position:fixed;left:0;right:0;bottom:0;z-index:20;display:grid;grid-template-columns:repeat(var(--n,7),minmax(0,1fr));gap:2px;
+    padding:4px 4px calc(4px + env(safe-area-inset-bottom));background:var(--card);border-top:1px solid var(--line);box-shadow:0 -4px 16px rgba(0,0,0,.08)}
+  nav.main .badge{position:absolute;top:2px;right:2px;margin:0;font-size:.62rem}
+  body{padding-bottom:calc(60px + env(safe-area-inset-bottom))}
   /* 列の多い表は縦積みのカード表示にして横スクロールをなくす */
   table.stack{min-width:0!important}
   table.stack thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
@@ -111,7 +157,7 @@ ul{padding-left:1.2rem}
   table.stack tr{border:1px solid var(--line);border-radius:var(--radius-s);margin:0 0 10px;padding:4px 0}
   table.stack td{border:0;padding:4px 10px}
   table.stack td[data-label]::before{content:attr(data-label);display:block;font-size:.8rem;font-weight:700;color:var(--muted)}
-  nav.main button{padding:4px 2px;font-size:.8rem;white-space:normal;line-height:1.25;min-height:36px}
+  nav.main button{display:flex;align-items:center;justify-content:center;border-radius:10px;padding:2px;font-size:.8rem;min-height:46px;white-space:normal;line-height:1.2}
   h1{font-size:1.25rem}
   .logo{font-size:14px}
 }
