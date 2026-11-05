@@ -1,7 +1,1 @@
-{
-  "contentVersion": "2026.11.3",
-  "examInfoVerifiedAt": "2026-11-03",
-  "notes": "二重監査（Claude Code側）を反映：全問の誤答選択肢を書き換え（最長の選択肢＝正答の偏りを解消）、AI教養の問題を29問・教材を拡充、モデル比較に現行モデル名、画面の上部バーと下部メニューを簡潔化、復習画面の不具合などを修正。",
-  "publishedAt": "2026-11-03",
-  "syllabusVersion": "G2024#6-"
-}
+{"contentVersion":"2026.11.4","examInfoVerifiedAt":"2026-11-03","notes":"AI教養ニュースに5件追加：OpenAIの画像生成「GPT Image 2.6」、Anthropicのメッセージスレッド公開ベータとClaudeテキスト透かし拡大、Claude Marketplace拡充、Googleの学校向けAI管理方針とGuided Learning。","publishedAt":"2026-11-05","syllabusVersion":"G2024#6-"}
