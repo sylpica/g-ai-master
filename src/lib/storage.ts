@@ -17,7 +17,7 @@ export function defaultState(): AppState {
     exams: [],
     exerciseChecks: {},
     settings: { ...defaultSettings },
-    contentVersion: '2026.11.4',
+    contentVersion: '2026.11.5',
     dailyGoalMin: 20,
   };
 }
