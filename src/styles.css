@@ -163,3 +163,55 @@ ul{padding-left:1.2rem}
   h1{font-size:1.25rem}
   .logo{font-size:14px}
 }
+
+/* ===== 2026.11.6 再設計で追加 ===== */
+/* 教材の図表 */
+.viz{border:1px solid var(--line);border-radius:var(--radius-s);background:var(--panel2);padding:10px 12px;margin:10px 0;min-width:0}
+.viz h3,.viz h4{margin:0 0 8px;font-size:.98rem}
+.viz p{margin:6px 0}
+.viz-caption{color:var(--muted);font-size:.86rem}
+.viz-example{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-s);padding:8px 10px;font-size:.9rem}
+.viz-nest{list-style:none;margin:0;padding:0}
+.viz-nest-layer{border:1.5px solid var(--line-strong);border-radius:var(--radius-s);padding:6px 10px;margin:0 auto 4px;background:var(--card);text-align:center;font-size:.92rem}
+.viz-nest-layer.hi{border-color:var(--accent);background:var(--accent-soft);font-weight:700}
+.viz table{font-size:.88rem}
+.viz .wrap-t{overflow-x:auto;max-width:100%}
+.viz-flow,.viz-timeline{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:8px;align-items:stretch}
+.viz-flow li,.viz-timeline li{flex:1 1 120px;display:flex;gap:6px;align-items:stretch;min-width:0}
+.viz-flow .fs{background:var(--card);border:1px solid var(--line-strong);border-radius:var(--radius-s);padding:8px 10px;font-size:.9rem;flex:1 1 auto;min-width:0}
+.viz-arrow{align-self:center;color:var(--accent);font-weight:700}
+.viz-timeline .te{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-s);padding:8px 10px;font-size:.88rem;flex:1 1 auto;min-width:0}
+.viz-timeline .te b{display:block;color:var(--accent)}
+.viz-compare{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:8px}
+.viz-side{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-s);padding:8px 12px;font-size:.9rem}
+.viz-side h4{margin:0 0 6px}
+.viz-formula .viz-expr{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-s);padding:10px 12px;font-weight:700;font-size:1rem;text-align:center}
+/* 教材本文の用語（リンク形式。詳細は下の定義ポップ） */
+.term{background:none;border:0;border-bottom:1px dotted var(--accent);color:var(--accent);padding:0;min-height:0;display:inline;font-size:inherit}
+.term:hover{border-bottom-style:solid}
+.term-pop{border-top:1px solid var(--line);margin-top:8px;padding-top:8px;font-size:.94rem}
+.term-link{background:none;border:0;color:var(--accent);padding:0;min-height:0;text-decoration:underline}
+/* 要点カード */
+.keypoints{border-left:4px solid var(--accent)}
+/* 関連カードのチップ */
+.related-chips{display:flex;flex-wrap:wrap;gap:6px}
+.related-chips .chip{border:1px solid var(--line-strong);border-radius:999px;background:var(--panel2);padding:4px 12px;min-height:36px;font-size:.88rem}
+/* 単語帳 */
+.flashcard{border:1.5px solid var(--line-strong);border-radius:var(--radius);background:var(--card);padding:22px 18px;text-align:center;min-height:170px;display:flex;flex-direction:column;justify-content:center;gap:10px;width:100%}
+.flashcard .card-term{font-size:1.5rem;font-weight:700;line-height:1.4}
+.flashcard .card-alias{color:var(--accent);font-weight:700}
+.flashcard .card-def{font-size:1.05rem;text-align:left;line-height:1.6}
+.flashcard .card-note{color:var(--muted);font-size:.88rem;text-align:left}
+.flashcard .flash-hint{color:var(--muted);font-size:.85rem}
+.flash-face{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:10px;width:100%;min-height:150px;border:1.5px dashed var(--line-strong);border-radius:var(--radius-s);background:var(--panel2);padding:16px 12px;cursor:pointer}
+.flash-face.back{border-style:solid;background:var(--card)}
+.flash-grades{display:flex;gap:8px;flex-wrap:wrap}
+.flash-grades button{flex:1 1 100px;min-height:52px;font-weight:700}
+.flash-nav{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.flash-links{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.card-list{list-style:none;margin:0 0 14px;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:8px}
+.card-list li{position:relative}
+.card-list .bm{position:absolute;top:6px;right:6px;z-index:1;background:var(--card)}
+.card-row{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;height:100%;text-align:left;padding:10px 44px 10px 12px}
+.card-row .small-def{color:var(--muted);font-size:.82rem;line-height:1.45}
+@media (max-width:640px){ .flashcard .card-term{font-size:1.3rem} .flashcard{padding:16px 12px} }

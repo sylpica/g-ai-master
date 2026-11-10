@@ -1,0 +1,174 @@
+[
+  {
+    "t": "2026-11-10T16:54:49.229Z",
+    "ev": "metrics",
+    "label": "home-initial",
+    "url": "http://localhost:4195/",
+    "scrollH": 1149,
+    "innerH": 812,
+    "overflowX": false,
+    "h1": "G検定取得 ダッシュボード"
+  },
+  {
+    "t": "2026-11-10T16:54:49.746Z",
+    "ev": "nav",
+    "labels": [
+      "ホーム",
+      "教材",
+      "演習",
+      "模試",
+      "復習",
+      "分析",
+      "設定"
+    ]
+  },
+  {
+    "t": "2026-11-10T16:54:49.746Z",
+    "ev": "check",
+    "name": "単語帳への導線が初回画面にあるか",
+    "result": "なし（ナビに単語帳なし）"
+  },
+  {
+    "t": "2026-11-10T16:54:50.749Z",
+    "ev": "metrics",
+    "label": "lessons",
+    "url": "http://localhost:4195/",
+    "scrollH": 1720,
+    "innerH": 812,
+    "overflowX": false,
+    "h1": "G検定 教材"
+  },
+  {
+    "t": "2026-11-10T16:54:51.442Z",
+    "ev": "metrics",
+    "label": "lesson-detail",
+    "url": "http://localhost:4195/",
+    "scrollH": 1490,
+    "innerH": 812,
+    "overflowX": false,
+    "h1": "人工知能とは：定義と古典的問題"
+  },
+  {
+    "t": "2026-11-10T16:54:51.664Z",
+    "ev": "measure",
+    "name": "教材詳細の本文文字数（main全体）",
+    "value": 595
+  },
+  {
+    "t": "2026-11-10T16:54:52.641Z",
+    "ev": "metrics",
+    "label": "practice",
+    "url": "http://localhost:4195/",
+    "scrollH": 1142,
+    "innerH": 812,
+    "overflowX": false,
+    "h1": "演習"
+  },
+  {
+    "t": "2026-11-10T16:54:53.947Z",
+    "ev": "answer",
+    "stem": "人工知能（AI）の定義に関する説明として、最も適切なものはどれか。",
+    "feedback": "正解です。\n\n次の問題"
+  },
+  {
+    "t": "2026-11-10T16:54:54.153Z",
+    "ev": "storage",
+    "answers": 1,
+    "firstAnswer": {
+      "q": "q-g01-1",
+      "correct": true,
+      "ctx": "practice"
+    }
+  },
+  {
+    "t": "2026-11-10T16:54:55.155Z",
+    "ev": "metrics",
+    "label": "after-reload-from-practice",
+    "url": "http://localhost:4195/",
+    "scrollH": 1281,
+    "innerH": 812,
+    "overflowX": false,
+    "h1": "G検定取得 ダッシュボード"
+  },
+  {
+    "t": "2026-11-10T16:54:55.155Z",
+    "ev": "check",
+    "name": "演習中にリロード→演習画面を維持できるか",
+    "result": "ホームに戻った（P1-3再現）"
+  },
+  {
+    "t": "2026-11-10T16:54:55.629Z",
+    "ev": "metrics",
+    "label": "review",
+    "url": "http://localhost:4195/",
+    "scrollH": 812,
+    "innerH": 812,
+    "overflowX": false,
+    "h1": "今日の復習"
+  },
+  {
+    "t": "2026-11-10T16:54:55.744Z",
+    "ev": "check",
+    "name": "復習画面に保存ボタンがあるか",
+    "result": "なし（P1-1再現）"
+  },
+  {
+    "t": "2026-11-10T16:54:56.355Z",
+    "ev": "metrics",
+    "label": "literacy",
+    "url": "http://localhost:4195/",
+    "scrollH": 1173,
+    "innerH": 812,
+    "overflowX": false,
+    "h1": "AI教養"
+  },
+  {
+    "t": "2026-11-10T16:54:56.364Z",
+    "ev": "check",
+    "name": "AI教養の教材一覧に検索欄があるか",
+    "result": "なし（P1-4再現）"
+  },
+  {
+    "t": "2026-11-10T16:54:57.268Z",
+    "ev": "dialog",
+    "type": "confirm",
+    "message": "回答 0件・模試 0件の記録で、現在の記録（回答 1件）を置き換えますか？"
+  },
+  {
+    "t": "2026-11-10T16:54:57.863Z",
+    "ev": "check",
+    "name": "壊れたschema1 JSONのインポートで既存履歴が守られるか",
+    "result": "変化した（P0-1再現の疑い）",
+    "dataMsg": "読み込みで反映され、学習記録は保持されます。"
+  },
+  {
+    "t": "2026-11-10T16:54:57.863Z",
+    "ev": "storage-after-import",
+    "answers": 0,
+    "answersType": "object"
+  },
+  {
+    "t": "2026-11-10T16:54:58.936Z",
+    "ev": "width",
+    "width": 320,
+    "overflowX": false
+  },
+  {
+    "t": "2026-11-10T16:54:59.837Z",
+    "ev": "width",
+    "width": 390,
+    "overflowX": false
+  },
+  {
+    "t": "2026-11-10T16:55:00.835Z",
+    "ev": "width",
+    "width": 768,
+    "overflowX": false
+  },
+  {
+    "t": "2026-11-10T16:55:01.758Z",
+    "ev": "width",
+    "width": 1280,
+    "overflowX": false
+  }
+]

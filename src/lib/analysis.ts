@@ -1,4 +1,5 @@
-import type { AnswerRecord, Question } from '../types';
+import type { AnswerRecord, ExamSession, Question } from '../types';
+import { judge } from './scoring';
 
 export interface FieldStat { syllabusId: string; total: number; correct: number; accuracy: number | null; firstSeenTotal: number; firstSeenAccuracy: number | null; }
 
@@ -24,30 +25,88 @@ export function fieldStats(answers: AnswerRecord[], questions: Question[]): Fiel
   })).sort((a, b) => (a.accuracy ?? 1) - (b.accuracy ?? 1));
 }
 
+export interface ExamSessionStat {
+  id: string;
+  kind: ExamSession['kind'];
+  submittedAt?: string;
+  total: number;
+  correct: number;
+  accuracy: number | null;
+  strict: boolean;
+}
+
+/** 模試は「回答件数」ではなく提出済みセッション単位で集計する（旧実装は回答レコード数で数えていた） */
+export function examSessionStats(exams: ExamSession[], questions: Question[]): ExamSessionStat[] {
+  const qmap = new Map(questions.map((q) => [q.id, q]));
+  return exams.filter((e) => e.status === 'submitted').map((e) => {
+    let total = 0; let correct = 0;
+    for (const qid of e.questionIds) {
+      const q = qmap.get(qid);
+      if (!q) continue;
+      total += 1;
+      if (judge(e.answers[qid] ?? [], q.answer)) correct += 1;
+    }
+    return { id: e.id, kind: e.kind, submittedAt: e.submittedAt, total, correct, accuracy: total ? correct / total : null, strict: e.strict };
+  });
+}
+
 export interface Readiness {
   firstSeenAccuracy: number | null;
   overallAccuracy: number | null;
+  retryAccuracy: number | null;
   examAccuracy: number | null;
-  coverage: number; // 0..1 学習済みシラバス項目の割合
+  /** 提出済み模試セッション数（回答件数ではない） */
+  examSessions: number;
+  /** 初見で回答したユニーク問題数 */
+  firstSeenUnique: number;
+  /** 初見回答のある章の割合 */
+  chapterCoverage: number;
+  /** 教材の学習済み割合（知識理解の証明としては扱わない・参考表示用） */
+  coverage: number;
   totalAnswers: number;
-  /** 到達判定: 複数指標の組合せ。単一模試の結果だけでは到達としない */
   reached95: boolean;
+  /** 到達に不足している条件（透明性のため列挙する） */
+  unmet: string[];
   note: string;
 }
 
-export function readiness(answers: AnswerRecord[], lessonsDone: string[], lessonsTotal: number): Readiness {
-  const fs = answers.filter((a) => a.firstSeen);
-  const exams = answers.filter((a) => a.context === 'exam');
+/**
+ * 到達95%の複合条件（2026-11-11 再定義）:
+ * 1. 初見ユニーク問題が150問以上（母数の不足した初見率は判定に使わない）
+ * 2. 初見正答率が95%以上
+ * 3. 初見回答が全章の80%以上に行き渡っている（易しい章だけの偏りを防ぐ）
+ * 4. 提出済み模試が3回以上あり、模試全体の正答率が95%以上
+ * 教材の学習済みチェックは条件に含めない（理解の証明ではないため）。
+ */
+export const READINESS_RULES = { minFirstSeenUnique: 150, minChapterCoverage: 0.8, minExamSessions: 3, target: 0.95 };
+
+export function readiness(answers: AnswerRecord[], lessonsDone: string[], lessonsTotal: number, exams: ExamSession[] = [], questions: Question[] = [], totalChapters = 0): Readiness {
   const acc = (xs: AnswerRecord[]) => (xs.length ? xs.filter((a) => a.correct).length / xs.length : null);
+  const fs = answers.filter((a) => a.firstSeen);
+  const retries = answers.filter((a) => !a.firstSeen);
+  const examAnswers = answers.filter((a) => a.context === 'exam');
   const firstSeenAccuracy = acc(fs);
   const overallAccuracy = acc(answers);
-  const examAccuracy = acc(exams);
+  const retryAccuracy = acc(retries);
+  const examAccuracy = acc(examAnswers);
+  const sessions = examSessionStats(exams, questions);
+  const firstSeenUnique = new Set(fs.map((a) => a.questionId)).size;
+  const qmap = new Map(questions.map((q) => [q.id, q]));
+  const fsChapters = new Set(fs.map((a) => qmap.get(a.questionId)?.syllabusId).filter(Boolean));
+  const chapterCoverage = totalChapters ? fsChapters.size / totalChapters : 0;
   const coverage = lessonsTotal ? lessonsDone.length / lessonsTotal : 0;
-  // 到達条件: 初見正答率95%以上 かつ 模試（複数回・30問以上）95%以上 かつ 網羅率90%以上
-  const reached95 = (firstSeenAccuracy ?? 0) >= 0.95 && exams.length >= 30 && (examAccuracy ?? 0) >= 0.95 && coverage >= 0.9;
+  const unmet: string[] = [];
+  if (firstSeenUnique < READINESS_RULES.minFirstSeenUnique) unmet.push(`初見問題が${firstSeenUnique}問（${READINESS_RULES.minFirstSeenUnique}問以上が必要）`);
+  if ((firstSeenAccuracy ?? 0) < READINESS_RULES.target) unmet.push(`初見正答率が${firstSeenAccuracy === null ? '未計測' : `${Math.round(firstSeenAccuracy * 100)}%`}（95%以上が必要）`);
+  if (chapterCoverage < READINESS_RULES.minChapterCoverage) unmet.push(`初見回答のある章が${Math.round(chapterCoverage * 100)}%（80%以上が必要）`);
+  if (sessions.length < READINESS_RULES.minExamSessions) unmet.push(`提出済み模試が${sessions.length}回（${READINESS_RULES.minExamSessions}回以上が必要）`);
+  if ((examAccuracy ?? 0) < READINESS_RULES.target) unmet.push(`模試の正答率が${examAccuracy === null ? '未計測' : `${Math.round(examAccuracy * 100)}%`}（95%以上が必要）`);
   return {
-    firstSeenAccuracy, overallAccuracy, examAccuracy, coverage,
-    totalAnswers: answers.length, reached95,
+    firstSeenAccuracy, overallAccuracy, retryAccuracy, examAccuracy,
+    examSessions: sessions.length, firstSeenUnique, chapterCoverage, coverage,
+    totalAnswers: answers.length,
+    reached95: unmet.length === 0,
+    unmet,
     note: '到達度は教育上の参考指標です。公式試験の合否や得点を保証・換算するものではありません（公式の合格点・得点算出方法は公開されていません）。',
   };
 }

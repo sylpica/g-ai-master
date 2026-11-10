@@ -1,29 +1,34 @@
 import { describe, it, expect } from 'vitest';
-import { parseState, defaultState, clampGoal } from '../../src/lib/storage';
+import { parseState, salvageState, defaultState, clampGoal } from '../../src/lib/storage';
 import { checkUpdate, compareVersion, BUNDLED_CONTENT_VERSION } from '../../src/lib/update';
 import manifest from '../../public/data/manifest.json';
 
 // 二重監査（Claude Code側, 2026-11-03）で追加した回帰テスト。詳細は docs/AUDIT_DUAL_CLAUDE_CODE.md
+// 2026-11-11 の再設計で parseState の契約を変更（{state,status,notes} を返し、致命的破損は
+// state=null＋status=corrupt、部分復旧は salvageState の責務）。本テストも新契約に追随した。
 describe('保存データの型破損からの復旧', () => {
   const base = () => ({ ...defaultState(), answers: [{ questionId: 'q-g01-1', selected: [0], correct: true, at: '2026-11-03T00:00:00.000Z', seconds: 5, firstSeen: true, context: 'practice' }] });
-  it('review が null でも起動でき、回答記録は保持される', () => {
-    const s = parseState(JSON.stringify({ ...base(), review: null }));
+  it('review が null は致命的破損として検出し、部分復旧で回答記録は保持される', () => {
+    const raw = JSON.stringify({ ...base(), review: null });
+    expect(parseState(raw).status).toBe('corrupt');
+    expect(parseState(raw).state).toBeNull();
+    const s = salvageState(raw)!;
     expect(s.review).toEqual({});
     expect(s.answers).toHaveLength(1);
   });
-  it('exams / bookmarks が配列でない場合は既定値に戻す（他フィールドは保持）', () => {
-    const s = parseState(JSON.stringify({ ...base(), exams: 'x', bookmarks: { a: 1 }, lessonsDone: ['les-g01', 3] }));
+  it('exams / bookmarks が配列でない場合は部分復旧で既定値に戻す（他フィールドは保持）', () => {
+    const s = salvageState(JSON.stringify({ ...base(), exams: 'x', bookmarks: { a: 1 }, lessonsDone: ['les-g01', 3] }))!;
     expect(s.exams).toEqual([]);
     expect(s.bookmarks).toEqual([]);
     expect(s.lessonsDone).toEqual(['les-g01']);
     expect(s.answers).toHaveLength(1);
   });
   it('設定値が範囲外なら既定値に戻す', () => {
-    const s = parseState(JSON.stringify({ ...base(), settings: { theme: 'neon', fontSize: 'xl', density: 'compact', reduceMotion: 'yes', order: 'weak' } }));
+    const s = parseState(JSON.stringify({ ...base(), settings: { theme: 'neon', fontSize: 'xl', density: 'compact', reduceMotion: 'yes', order: 'weak' } })).state!;
     expect(s.settings).toEqual({ theme: 'light', fontSize: 'm', density: 'compact', reduceMotion: false, order: 'weak' });
   });
   it('不正な回答レコードだけを除外する', () => {
-    const s = parseState(JSON.stringify({ ...base(), answers: [...base().answers, { questionId: 1 }, null] }));
+    const s = parseState(JSON.stringify({ ...base(), answers: [...base().answers, { questionId: 1 }, null] })).state!;
     expect(s.answers).toHaveLength(1);
   });
   it('1日の目標は5〜180分に丸める', () => {

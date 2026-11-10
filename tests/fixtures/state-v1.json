@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "mode": "g",
+  "answers": [
+    { "questionId": "q-g01-1", "selected": [0], "correct": true, "at": "2026-11-01T10:00:00.000Z", "seconds": 42, "firstSeen": true, "context": "practice" },
+    { "questionId": "q-g03-2", "selected": [1], "correct": false, "at": "2026-11-01T10:02:00.000Z", "seconds": 65, "firstSeen": true, "context": "practice" }
+  ],
+  "lessonsDone": ["les-g01"],
+  "bookmarks": ["lesson:les-g01", "q:q-g03-2"],
+  "review": {
+    "q-g03-2": { "questionId": "q-g03-2", "ease": 2.3, "intervalDays": 1, "due": "2026-11-02", "reps": 0, "lapses": 1 }
+  },
+  "exams": [
+    { "id": "exam-1762000000000", "kind": "short", "mode": "g", "startedAt": "2026-11-01T11:00:00.000Z", "limitSec": 900, "questionIds": ["q-g01-1"], "answers": { "q-g01-1": [0] }, "flags": [], "current": 0, "pauses": [], "status": "submitted", "submittedAt": "2026-11-01T11:10:00.000Z", "strict": true }
+  ],
+  "exerciseChecks": {},
+  "settings": { "theme": "dark", "fontSize": "m", "density": "comfortable", "reduceMotion": false, "order": "recommended" },
+  "contentVersion": "2026.11.5",
+  "dailyGoalMin": 30
+}

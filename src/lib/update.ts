@@ -1,5 +1,5 @@
 /** このビルドに同梱されている教材バージョン。新しい版のアプリが読み込まれたことは、この値で判定する。 */
-export const BUNDLED_CONTENT_VERSION = '2026.11.5';
+export const BUNDLED_CONTENT_VERSION = '2026.11.6';
 
 export interface ContentManifest {
   contentVersion: string;

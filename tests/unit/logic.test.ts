@@ -5,7 +5,7 @@ import { fieldStats, readiness } from '../../src/lib/analysis';
 import { parseState, defaultState } from '../../src/lib/storage';
 import { isValidManifest } from '../../src/lib/update';
 import { publishedQuestions } from '../../src/data/questions';
-import { publishedLessons } from '../../src/data/lessons';
+
 
 describe('judge', () => {
   it('単一選択', () => { expect(judge([1], [1])).toBe(true); expect(judge([0], [1])).toBe(false); });
@@ -50,19 +50,22 @@ describe('analysis', () => {
   it('到達判定は単一条件では成立しない', () => {
     const r = readiness([
       { questionId: qs[0].id, selected: qs[0].answer, correct: true, at: '2026-11-02T00:00:00Z', seconds: 1, firstSeen: true, context: 'exam' },
-    ], publishedLessons.filter((l) => l.mode === 'g').map((l) => l.id), publishedLessons.filter((l) => l.mode === 'g').length);
+    ], [], 0, [], publishedQuestions, 10);
     expect(r.reached95).toBe(false);
     expect(r.note).toContain('保証');
   });
 });
 
 describe('storage', () => {
-  it('壊れたデータでは既定状態を返す（例外を投げない）', () => {
-    expect(parseState('{broken').answers).toEqual([]);
-    expect(parseState(null).schemaVersion).toBe(1);
-    expect(parseState(JSON.stringify({ schemaVersion: 99 })).schemaVersion).toBe(1);
+  it('壊れたデータは corrupt として検出し、既定状態では上書きしない（例外を投げない）', () => {
+    expect(parseState('{broken').status).toBe('corrupt');
+    expect(parseState('{broken').state).toBeNull();
+    expect(parseState(null).status).toBe('empty');
+    expect(parseState(null).state).not.toBeNull();
+    expect(parseState(JSON.stringify({ schemaVersion: 99 })).status).toBe('unsupported');
+    expect(parseState(JSON.stringify({ schemaVersion: 99 })).state).toBeNull();
   });
-  it('既定状態はスキーマ1', () => { expect(defaultState().schemaVersion).toBe(1); });
+  it('既定状態はスキーマ2', () => { expect(defaultState().schemaVersion).toBe(2); });
 });
 
 describe('update manifest', () => {

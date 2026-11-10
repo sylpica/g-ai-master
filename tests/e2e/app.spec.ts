@@ -9,7 +9,7 @@ test.beforeEach(async ({ page }) => {
 test('初回アクセスとモード切替で状態が失われない', async ({ page }) => {
   await expect(page.getByRole('heading', { name: /G検定取得/ })).toBeVisible();
   await page.getByLabel('学習モード').getByRole('button', { name: 'AI教養', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'AI教養', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /AI教養/ })).toBeVisible();
   await page.getByLabel('学習モード').getByRole('button', { name: 'G検定取得', exact: true }).click();
   await expect(page.getByRole('heading', { name: /ダッシュボード/ })).toBeVisible();
 });
@@ -18,7 +18,7 @@ test('教材を開いて学習済みにできる', async ({ page }) => {
   await page.getByLabel('主要メニュー').getByRole('button', { name: '教材' }).click();
   await page.getByRole('button', { name: /人工知能とは：定義/ }).click();
   await expect(page.getByRole('heading', { name: '基礎解説' })).toBeVisible();
-  await page.getByRole('button', { name: '詳細解説を開く' }).click();
+  await page.locator('summary', { hasText: '詳細解説を開く' }).click();
   await expect(page.getByText(/代表的な古典的問題/)).toBeVisible();
   await page.getByRole('button', { name: '学習済みにする' }).click();
   await expect(page.getByRole('button', { name: '学習済み' })).toBeDisabled();
@@ -26,13 +26,17 @@ test('教材を開いて学習済みにできる', async ({ page }) => {
 
 test('演習で回答すると正誤と解説が表示され、記録が復元される', async ({ page }) => {
   await page.getByLabel('主要メニュー').getByRole('button', { name: '演習' }).click();
+  await page.getByRole('button', { name: 'この条件ではじめる' }).click();
   const firstChoice = page.locator('.choice').first();
   await firstChoice.click();
   await page.getByRole('button', { name: '回答する' }).click();
   await expect(page.getByRole('heading', { name: '基礎解説' })).toBeVisible();
   await expect(page.locator('.choice .reason').first()).toBeVisible(); // 回答後は各選択肢の下に判定理由を表示
-  await page.reload();
-  await expect(page.locator('.flow')).toContainText('累計 1問に回答');
+  await page.reload(); // リロードしても同じセッション・同じ問題の結果が復元される（P1-3回帰）
+  await expect(page.locator('.meta')).toContainText('1／');
+  await expect(page.getByText(/正解です|不正解です/)).toBeVisible();
+  const n = await page.evaluate(() => JSON.parse(localStorage.getItem('g-ai-master:state:v1')!).answers.length);
+  expect(n).toBe(1);
 });
 
 test('短縮模試：開始・一時停止・再開・提出・結果表示', async ({ page }) => {
@@ -53,7 +57,9 @@ test('模試の中断は再読み込み後も再開できる', async ({ page }) 
   await page.getByLabel('主要メニュー').getByRole('button', { name: '模試' }).click();
   await page.locator('.card').filter({ has: page.getByRole('heading', { name: '短縮模試' }) }).getByRole('button', { name: '開始' }).click();
   await expect(page.getByText(/残り時間/)).toBeVisible();
-  await page.reload();
+  await page.reload(); // 受験中の模試がそのまま復元される
+  await expect(page.getByText(/残り時間/)).toBeVisible();
+  await page.getByLabel('主要メニュー').getByRole('button', { name: 'ホーム' }).click();
   await expect(page.getByText(/中断中の模擬試験/)).toBeVisible();
 });
 
@@ -73,11 +79,11 @@ test('教材の更新確認が結果を表示する', async ({ page }) => {
 
 test('演習のシャッフルを切り替えて回答できる', async ({ page }) => {
   await page.getByLabel('主要メニュー').getByRole('button', { name: '演習' }).click();
-  const toggle = page.getByRole('button', { name: /出題順/ });
-  await expect(toggle).toHaveAttribute('aria-pressed', 'false');
-  await toggle.click();
-  await expect(toggle).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.getByRole('button', { name: '再シャッフル' })).toBeVisible();
+  const toggleQ = page.getByLabel('出題順シャッフル');
+  await expect(toggleQ).toBeChecked(); // 既定は設定どおりON
+  await toggleQ.uncheck();
+  await expect(toggleQ).not.toBeChecked();
+  await page.getByRole('button', { name: 'この条件ではじめる' }).click();
   await page.locator('.choice').first().click();
   await page.getByRole('button', { name: '回答する' }).click();
   await expect(page.getByRole('heading', { name: '基礎解説' })).toBeVisible();
@@ -91,6 +97,9 @@ test('モバイル幅で横スクロールが発生しない', async ({ page }) 
   await page.getByLabel('主要メニュー').getByRole('button', { name: '演習' }).click();
   const overflow2 = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow2).toBeLessThanOrEqual(0);
+  await page.getByLabel('主要メニュー').getByRole('button', { name: '単語帳' }).click();
+  const overflow3 = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow3).toBeLessThanOrEqual(0);
 });
 
 test('教材検索とブックマーク絞り込みが使える', async ({ page }) => {
@@ -111,6 +120,7 @@ test('教材検索とブックマーク絞り込みが使える', async ({ page 
 test('AI教養のニュースタブに最新情報が表示される', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('group', { name: '学習モード' }).getByRole('button', { name: 'AI教養' }).click();
+  await page.getByLabel('主要メニュー').getByRole('button', { name: '教材' }).click();
   await page.getByRole('button', { name: 'ニュース' }).click();
   await expect(page.locator('main')).toContainText('人工知能基本計画');
   await expect(page.locator('main')).toContainText('超重要');
@@ -137,6 +147,7 @@ test('復習：回答後も同じ問題の解説が表示され、別の問題�
   const nav = page.getByLabel('主要メニュー');
   await expect(nav.getByRole('button', { name: '復習（3件）' })).toBeVisible(); // G検定モードではG問題だけを数える
   await nav.getByRole('button', { name: /^復習/ }).click();
+  await page.getByRole('button', { name: 'この条件ではじめる' }).click();
   const stem = await page.locator('legend h2').textContent();
   await page.locator('.choice').first().click();
   await page.getByRole('button', { name: '回答する' }).click();
@@ -154,8 +165,8 @@ test('スマートフォン幅：上部バーは1行、主要メニューは画�
     const header = await page.locator('header.top').boundingBox();
     expect(header!.height, `header @${width}`).toBeLessThanOrEqual(56);
     const buttons = page.getByLabel('主要メニュー').getByRole('button');
-    await expect(buttons).toHaveCount(7);
-    for (let i = 0; i < 7; i++) {
+    await expect(buttons).toHaveCount(8); // 2026-11-11 単語帳を追加
+    for (let i = 0; i < 8; i++) {
       const box = await buttons.nth(i).boundingBox();
       expect(box, `nav ${i} @${width}`).not.toBeNull();
       expect(box!.x).toBeGreaterThanOrEqual(0);
@@ -169,9 +180,9 @@ test('スマートフォン幅：上部バーは1行、主要メニューは画�
     const navTop = (await page.locator('nav.main').boundingBox())!.y;
     expect(foot!.y + foot!.height).toBeLessThanOrEqual(navTop + 1);
   }
-  // AI教養モードでは模試がなく6項目
+  // AI教養モードでは模試がなく7項目
   await page.getByLabel('学習モード').getByRole('button', { name: 'AI教養', exact: true }).click();
-  await expect(page.getByLabel('主要メニュー').getByRole('button')).toHaveCount(6);
+  await expect(page.getByLabel('主要メニュー').getByRole('button')).toHaveCount(7);
 });
 
 test('教材を開いた状態でメニューを押すと、その画面へ移動する', async ({ page }) => {
@@ -201,7 +212,9 @@ test('学習記録のエクスポートと読み込み（置き換え前に確�
   const path = await download.path();
   await page.getByRole('button', { name: '記録を初期化' }).click();
   await page.getByLabel('記録を読み込む').setInputFiles(path!);
-  await expect(page.getByText('学習記録を読み込みました。')).toBeVisible();
+  await expect(page.getByRole('heading', { name: '取り込み内容の確認' })).toBeVisible(); // 置き換え前に必ず確認する
+  await page.getByRole('button', { name: 'この内容で置き換える' }).click();
+  await expect(page.getByText(/学習記録を読み込みました/)).toBeVisible();
   const n = await page.evaluate(() => JSON.parse(localStorage.getItem('g-ai-master:state:v1')!).answers.length);
   expect(n).toBe(1);
   await page.getByLabel('記録を読み込む').setInputFiles({ name: 'bad.json', mimeType: 'application/json', buffer: Buffer.from('{"x":1}') });
@@ -212,11 +225,16 @@ test('学習記録のエクスポートと読み込み（置き換え前に確�
 test('演習：問題検索と保存した問題の絞り込み', async ({ page }) => {
   await page.getByLabel('主要メニュー').getByRole('button', { name: '演習' }).click();
   await page.getByRole('searchbox', { name: '問題を検索' }).fill('チューリングテスト');
+  await expect(page.getByText(/対象は3問です/)).toBeVisible(); // 問題文・選択肢・解説のいずれかに含む3問
+  await page.getByLabel('出題順シャッフル').uncheck();
+  await page.getByLabel('選択肢シャッフル').uncheck();
+  await page.getByRole('button', { name: 'この条件ではじめる' }).click();
   await expect(page.locator('legend h2').first()).toContainText('チューリングテスト');
   await page.getByRole('button', { name: '☆ 保存' }).click();
   await expect(page.getByRole('button', { name: '★ 保存済み' })).toBeVisible();
-  await page.getByRole('searchbox', { name: '問題を検索' }).fill('');
+  await page.getByRole('button', { name: 'セッションを終了' }).click();
   await page.getByLabel('保存した問題のみ').check();
+  await page.getByRole('button', { name: 'この条件ではじめる' }).click();
   await expect(page.locator('.meta')).toContainText('0／1問');
   await page.reload();
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('g-ai-master:state:v1')!).bookmarks);
