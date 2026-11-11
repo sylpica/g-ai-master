@@ -26,7 +26,7 @@ export function defaultState(): AppState {
     exams: [],
     exerciseChecks: {},
     settings: { ...defaultSettings },
-    contentVersion: '2026.11.6',
+    contentVersion: '2026.11.7',
     dailyGoalMin: 20,
     cardReview: {},
     cardDirection: 'term-first',
