@@ -3,7 +3,7 @@ import { QUESTIONS, publishedQuestions } from '../../src/data/questions';
 import { LESSONS, publishedLessons } from '../../src/data/lessons';
 import { EXERCISES } from '../../src/data/exercises';
 import { ALL_SYLLABUS, syllabusById } from '../../src/data/syllabus';
-import { ILLUSTRATIONS } from '../../src/data/illustrations';
+import { DETAIL_ILLUSTRATIONS, ILLUSTRATIONS } from '../../src/data/illustrations';
 
 const IMG64 = import.meta.glob('../../public/img64/*.b64', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
 
@@ -120,6 +120,22 @@ describe('イメージ図', () => {
       expect(body.length, l.id).toBeGreaterThan(8000);
     }
     expect(Object.keys(ILLUSTRATIONS).length).toBe(publishedLessons.length);
+  });
+
+  it('詳細解説にも全教材1点ずつあり、同梱ファイルが実在する', () => {
+    for (const l of publishedLessons) {
+      const meta = DETAIL_ILLUSTRATIONS[l.id];
+      expect(meta, `${l.id} の詳細メタデータ`).toBeTruthy();
+      expect(meta.alt.length, l.id).toBeGreaterThan(10);
+      expect(meta.caption.length, l.id).toBeGreaterThan(5);
+      expect(Number.isInteger(meta.after), l.id).toBe(true);
+      expect(meta.after, l.id).toBeGreaterThanOrEqual(0);
+      expect(meta.after, l.id).toBeLessThan(l.detail.length);
+      const body = IMG64[`../../public/img64/${l.id}-d.b64`];
+      expect(typeof body, `${l.id} の詳細同梱画像`).toBe('string');
+      expect(body.length, l.id).toBeGreaterThan(8000);
+    }
+    expect(Object.keys(DETAIL_ILLUSTRATIONS).length).toBe(publishedLessons.length);
   });
 });
 

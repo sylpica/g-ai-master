@@ -153,6 +153,12 @@ test('教材にイメージ図が本文中に表示される', async ({ page }) 
   await expect(img).toBeVisible();
   await expect.poll(async () => img.evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(100);
   await expect(card.locator('.lesson-fig figcaption')).not.toHaveText('');
+  // 詳細解説の中にも、その段落の内容に合わせた図が1点入っていること
+  await page.getByText('詳細解説を開く').click();
+  const dImg = page.locator('details .lesson-fig img');
+  await dImg.scrollIntoViewIfNeeded();
+  await expect(dImg).toBeVisible();
+  await expect.poll(async () => dImg.evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(100);
 });
 
 test('教材画面から要点まとめPDFを開ける', async ({ page }) => {

@@ -5,7 +5,7 @@ import { publishedLessons } from './data/lessons';
 import { publishedQuestions } from './data/questions';
 import { publishedFlashcards } from './data/flashcards';
 import { LESSON_VISUAL_IDS } from './data/lessonVisuals';
-import { ILLUSTRATIONS } from './data/illustrations';
+import { DETAIL_ILLUSTRATIONS, ILLUSTRATIONS } from './data/illustrations';
 import { EXERCISES, MODEL_INFOS } from './data/exercises';
 import { NEWS_ITEMS, NEWS_LAST_ADDED } from './data/news';
 import { loadState, saveState, exportState, defaultState, salvageState, validateImport, clampGoal, BACKUP_KEY } from './lib/storage';
@@ -42,14 +42,15 @@ const loadBundledImage = (lessonId: string): Promise<string> => {
   bundledImageCache.set(lessonId, p);
   return p;
 };
-function LessonIllustration({ lessonId }: { lessonId: string }) {
-  const meta = ILLUSTRATIONS[lessonId];
+function LessonIllustration({ lessonId, variant = 'basic' }: { lessonId: string; variant?: 'basic' | 'detail' }) {
+  const meta = variant === 'detail' ? DETAIL_ILLUSTRATIONS[lessonId] : ILLUSTRATIONS[lessonId];
+  const fileKey = variant === 'detail' ? `${lessonId}-d` : lessonId;
   const [src, setSrc] = useState<string | null>(null);
   useEffect(() => {
     let alive = true;
-    if (meta) loadBundledImage(lessonId).then((u) => { if (alive) setSrc(u); }).catch(() => undefined);
+    if (meta) loadBundledImage(fileKey).then((u) => { if (alive) setSrc(u); }).catch(() => undefined);
     return () => { alive = false; };
-  }, [lessonId, meta]);
+  }, [lessonId, meta, fileKey]);
   if (!meta) return null;
   return (
     <figure className="lesson-fig">
@@ -457,7 +458,12 @@ function LessonView({ lesson, state, onDone, onBack, onBookmark, onOpenCard, onP
       <div className="card">
         <details>
           <summary>詳細解説を開く</summary>
-          {lesson.detail.map((p, i) => <p key={i}><TermText text={p} terms={terms} onOpenCard={onOpenCard} /></p>)}
+          {lesson.detail.map((p, i) => (
+            <React.Fragment key={i}>
+              <p><TermText text={p} terms={terms} onOpenCard={onOpenCard} /></p>
+              {DETAIL_ILLUSTRATIONS[lesson.id]?.after === i && <LessonIllustration lessonId={lesson.id} variant="detail" />}
+            </React.Fragment>
+          ))}
           {lesson.advancedNote && <p className="muted">発展内容について：{lesson.advancedNote}</p>}
         </details>
         <h3>参考資料</h3><ul>{lesson.sources.map((s) => <li key={s.url}><a href={s.url} target="_blank" rel="noreferrer">{s.title}</a></li>)}</ul>
