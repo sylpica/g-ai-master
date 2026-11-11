@@ -111,6 +111,10 @@ describe('イメージ図', () => {
       expect(meta, `${l.id} のメタデータ`).toBeTruthy();
       expect(meta.alt.length, l.id).toBeGreaterThan(10);
       expect(meta.caption.length, l.id).toBeGreaterThan(5);
+      // 挿入位置は基礎解説の段落の範囲内（本文中の補助として置く）
+      expect(Number.isInteger(meta.after), l.id).toBe(true);
+      expect(meta.after, l.id).toBeGreaterThanOrEqual(0);
+      expect(meta.after, l.id).toBeLessThan(l.basic.length);
       const body = IMG64[`../../public/img64/${l.id}.b64`];
       expect(typeof body, `${l.id} の同梱画像`).toBe('string');
       expect(body.length, l.id).toBeGreaterThan(8000);

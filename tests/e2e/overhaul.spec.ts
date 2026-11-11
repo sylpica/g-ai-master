@@ -142,13 +142,17 @@ test('フロー図のラベルが狭幅で縦書き状に潰れない（2026-11-
   for (const h of heights) expect(h).toBeLessThan(48); // 1文字幅に潰れると4文字で70px超になる
 });
 
-test('教材にイメージ図が表示される', async ({ page }) => {
+test('教材にイメージ図が本文中に表示される', async ({ page }) => {
   await page.getByLabel('主要メニュー').getByRole('button', { name: '教材' }).click();
   await page.locator('.lesson-row').first().click();
-  const img = page.locator('.lesson-fig img');
+  // タイトル直下の装飾ではなく、基礎解説カードの文章の中に置かれていること
+  await expect(page.locator('article > .lesson-fig')).toHaveCount(0);
+  const card = page.locator('.card', { has: page.getByRole('heading', { name: '基礎解説' }) });
+  const img = card.locator('.lesson-fig img');
+  await img.scrollIntoViewIfNeeded();
   await expect(img).toBeVisible();
   await expect.poll(async () => img.evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(100);
-  await expect(page.locator('.lesson-fig figcaption')).not.toHaveText('');
+  await expect(card.locator('.lesson-fig figcaption')).not.toHaveText('');
 });
 
 test('教材画面から要点まとめPDFを開ける', async ({ page }) => {

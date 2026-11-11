@@ -198,8 +198,8 @@ export default function App() {
           <span className="logo">AI総合学習</span>
           <div role="group" aria-label="学習モード" className="seg">
             <button className={state.mode === 'g' ? 'primary' : ''} aria-pressed={state.mode === 'g'} onClick={() => { setMode('g'); nav({ name: 'home' }); }}>G検定取得</button>
-            <button className={state.mode === 'literacy' ? 'primary' : ''} aria-pressed={state.mode === 'literacy'} onClick={() => { setMode('literacy'); nav({ name: 'home' }); }}>AI教養</button>
             <button className={state.mode === 'passport' ? 'primary' : ''} aria-pressed={state.mode === 'passport'} onClick={() => { setMode('passport'); nav({ name: 'home' }); }}>生成AIパスポート</button>
+            <button className={state.mode === 'literacy' ? 'primary' : ''} aria-pressed={state.mode === 'literacy'} onClick={() => { setMode('literacy'); nav({ name: 'home' }); }}>AI教養</button>
           </div>
           <nav className="main" aria-label="主要メニュー" style={{ '--n': navItems.length } as React.CSSProperties}>
             {navItems.map((n) => (
@@ -439,7 +439,6 @@ function LessonView({ lesson, state, onDone, onBack, onBookmark, onOpenCard, onP
         <button aria-pressed={bookmarked} onClick={onBookmark}>{bookmarked ? '★ ブックマーク済み' : '☆ ブックマーク'}</button>
         <button onClick={onSyllabus}>シラバスでの位置</button></p>
       <h1>{lesson.title}</h1>
-      <LessonIllustration lessonId={lesson.id} />
       <div className="card keypoints">
         <h2>この教材で覚えること</h2>
         <ul>{lesson.keyPoints.map((k) => <li key={k}>{k}</li>)}</ul>
@@ -447,7 +446,12 @@ function LessonView({ lesson, state, onDone, onBack, onBookmark, onOpenCard, onP
       </div>
       <div className="card">
         <h2>基礎解説</h2>
-        {lesson.basic.map((p, i) => <p key={i}><TermText text={p} terms={terms} onOpenCard={onOpenCard} /></p>)}
+        {lesson.basic.map((p, i) => (
+          <React.Fragment key={i}>
+            <p><TermText text={p} terms={terms} onOpenCard={onOpenCard} /></p>
+            {ILLUSTRATIONS[lesson.id]?.after === i && <LessonIllustration lessonId={lesson.id} />}
+          </React.Fragment>
+        ))}
         <h3>よくある誤解</h3><ul>{lesson.pitfalls.map((k) => <li key={k}>{k}</li>)}</ul>
       </div>
       <div className="card">
@@ -1089,7 +1093,7 @@ function SettingsView({ state, upd, setState }: { state: AppState; upd: (fn: (s:
           <label>文字サイズ <select value={set.fontSize} onChange={(e) => upd((s) => { s.settings.fontSize = e.target.value as 's' | 'm' | 'l'; return s; })}><option value="s">小</option><option value="m">中</option><option value="l">大</option></select></label>{' '}
           <label>表示密度 <select value={set.density} onChange={(e) => upd((s) => { s.settings.density = e.target.value as 'comfortable' | 'compact'; return s; })}><option value="comfortable">標準</option><option value="compact">コンパクト</option></select></label></p>
         <p><label><input type="checkbox" checked={set.reduceMotion} onChange={(e) => upd((s) => { s.settings.reduceMotion = e.target.checked; return s; })} /> アニメーションを抑制する</label></p>
-        <p><label>起動時に最初に開くモード <select value={set.startMode} onChange={(e) => upd((s) => { s.settings.startMode = e.target.value as Mode; return s; })}><option value="g">G検定取得</option><option value="literacy">AI教養</option><option value="passport">生成AIパスポート</option></select></label> <span className="muted small">次にアプリを開いた時から適用されます</span></p>
+        <p><label>起動時に最初に開くモード <select value={set.startMode} onChange={(e) => upd((s) => { s.settings.startMode = e.target.value as Mode; return s; })}><option value="g">G検定取得</option><option value="passport">生成AIパスポート</option><option value="literacy">AI教養</option></select></label> <span className="muted small">次にアプリを開いた時から適用されます</span></p>
         <p><label>1日の学習目標（分） <input type="number" min={5} max={180} value={state.dailyGoalMin} onChange={(e) => { const v = e.target.valueAsNumber; if (Number.isFinite(v)) upd((s) => { s.dailyGoalMin = clampGoal(v); return s; }); }} style={{ width: 80 }} /></label></p>
       </div>
       <div className="card"><h2>教材の更新</h2>
