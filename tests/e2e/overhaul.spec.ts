@@ -63,7 +63,7 @@ test('データ保護：壊れたインポートは拒否され、既存の記�
   await page.getByLabel('主要メニュー').getByRole('button', { name: '演習' }).click();
   await page.getByRole('button', { name: 'この条件ではじめる' }).click();
   await page.locator('.choice').first().click();
-  await page.getByRole('button', { name: '回答する' }).click();
+  // 単一選択は選んだ瞬間に判定される（即時フィードバック）
   await page.getByLabel('主要メニュー').getByRole('button', { name: '設定' }).click();
   await page.getByLabel('記録を読み込む').setInputFiles({
     name: 'broken.json', mimeType: 'application/json',
@@ -102,4 +102,52 @@ test('教材に図表が表示される', async ({ page }) => {
   await page.goto('/#/lesson/les-g08');
   await expect(page.locator('.viz').first()).toBeVisible();
   await expect(page.locator('main')).toContainText('混同行列');
+});
+
+test('単語帳：カードを左右にスワイプすると前後のカードへ移動する', async ({ page }) => {
+  await page.getByLabel('主要メニュー').getByRole('button', { name: '単語帳' }).click();
+  await page.getByLabel('シャッフル').uncheck();
+  await page.getByRole('button', { name: 'この条件ではじめる' }).click();
+  const face = page.locator('.flash-face');
+  await expect(face).toBeVisible();
+  await expect(page.locator('.meta')).toContainText('1／');
+  const swipe = (dx: number) => face.evaluate((el, d) => {
+    const r = el.getBoundingClientRect();
+    const y = r.top + r.height / 2;
+    el.dispatchEvent(new PointerEvent('pointerdown', { clientX: r.left + r.width / 2, clientY: y, bubbles: true }));
+    el.dispatchEvent(new PointerEvent('pointerup', { clientX: r.left + r.width / 2 + d, clientY: y, bubbles: true }));
+  }, dx);
+  await swipe(-120); // 左スワイプ＝次へ
+  await expect(page.locator('.meta')).toContainText('2／');
+  await swipe(120); // 右スワイプ＝前へ
+  await expect(page.locator('.meta')).toContainText('1／');
+});
+
+test('演習：選んだ瞬間に答えと関連図表が表示される（即時フィードバック）', async ({ page }) => {
+  await page.getByLabel('主要メニュー').getByRole('button', { name: '演習' }).click();
+  await page.getByRole('button', { name: 'この条件ではじめる' }).click();
+  await page.locator('.choice').first().click();
+  await expect(page.getByText(/正解です|不正解です/)).toBeVisible(); // 「回答する」を押さずに判定される
+  await expect(page.getByRole('button', { name: '回答する' })).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: '関連図表' })).toBeVisible();
+  await expect(page.locator('.viz').first()).toBeVisible();
+});
+
+test('フロー図のラベルが狭幅で縦書き状に潰れない（2026-11-11回帰）', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 800 });
+  await page.goto('/#/lesson/les-g03');
+  await expect(page.locator('.viz-flow .fs b').first()).toBeVisible();
+  const heights = await page.evaluate(() => [...document.querySelectorAll('.viz-flow .fs b')].map((el) => (el as HTMLElement).offsetHeight));
+  expect(heights.length).toBeGreaterThan(0);
+  for (const h of heights) expect(h).toBeLessThan(48); // 1文字幅に潰れると4文字で70px超になる
+});
+
+test('教材画面から要点まとめPDFを開ける', async ({ page }) => {
+  await page.getByLabel('主要メニュー').getByRole('button', { name: '教材' }).click();
+  await expect(page.getByRole('button', { name: '要点まとめPDFを開く' })).toBeVisible();
+  const b64 = await page.evaluate(async () => {
+    const r = await fetch('pdf64/g-summary.b64');
+    return r.ok ? (await r.text()).length : 0;
+  });
+  expect(b64).toBeGreaterThan(1000000); // 同梱されたPDF（Base64）が取得できる
 });

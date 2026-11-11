@@ -1,4 +1,7 @@
 import type { Flashcard } from '../types';
+import { G_EXTRA_CARDS } from './gExtraCards';
+import { PASSPORT_CARDS } from './passportCards';
+import { PASSPORT_EXTRA_CARDS } from './passportExtraCards';
 
 // 単語帳（フラッシュカード）のデータ。
 // 収録方針：既存の教材（lessons.ts）と問題（questions.ts）に実際に現れる重要用語だけを収録し、
@@ -72,7 +75,7 @@ const V_AT = '2026-11-11';
 type C = Omit<Flashcard, 'verifiedAt'>;
 const c = (x: C): Flashcard => ({ ...x, verifiedAt: V_AT });
 
-export const FLASHCARDS: Flashcard[] = [
+const BASE_FLASHCARDS: Flashcard[] = [
   // ===== g-01 人工知能とは =====
   c({
     id: 'card-g01-01', mode: 'g', syllabusId: 'g-01', conceptId: 'q-g01-1', term: '人工知能（AI）の定義',
@@ -909,5 +912,7 @@ export const FLASHCARDS: Flashcard[] = [
     lessonId: 'les-l07', questionIds: [], sources: [JDLA, BUNKA], difficulty: 2,
   }),
 ];
+
+export const FLASHCARDS: Flashcard[] = [...BASE_FLASHCARDS, ...G_EXTRA_CARDS, ...PASSPORT_CARDS, ...PASSPORT_EXTRA_CARDS];
 
 export const publishedFlashcards = FLASHCARDS;

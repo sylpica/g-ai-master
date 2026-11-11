@@ -12,7 +12,7 @@ export const BACKUP_KEY = 'g-ai-master:state:backup';
 export const MAX_IMPORT_BYTES = 5 * 1024 * 1024;
 
 export const defaultSettings: Settings = {
-  theme: 'light', fontSize: 'm', density: 'comfortable', reduceMotion: false, order: 'recommended',
+  theme: 'light', fontSize: 'm', density: 'comfortable', reduceMotion: false, order: 'recommended', startMode: 'g',
 };
 
 export function defaultState(): AppState {
@@ -26,7 +26,7 @@ export function defaultState(): AppState {
     exams: [],
     exerciseChecks: {},
     settings: { ...defaultSettings },
-    contentVersion: '2026.11.7',
+    contentVersion: '2026.11.8',
     dailyGoalMin: 20,
     cardReview: {},
     cardDirection: 'term-first',
@@ -71,7 +71,7 @@ export function isValidCardReview(c: unknown): c is CardReview {
 }
 
 export function isValidExam(e: unknown): e is ExamSession {
-  if (!isObj(e) || !isStr(e.id) || !EXAM_KINDS.includes(e.kind as typeof EXAM_KINDS[number]) || !(e.mode === 'g' || e.mode === 'literacy')) return false;
+  if (!isObj(e) || !isStr(e.id) || !EXAM_KINDS.includes(e.kind as typeof EXAM_KINDS[number]) || !(e.mode === 'g' || e.mode === 'literacy' || e.mode === 'passport')) return false;
   if (!isIsoStr(e.startedAt) || !isIntIn(e.limitSec, 30, 86400)) return false;
   if (!Array.isArray(e.questionIds) || e.questionIds.length > 1000 || !e.questionIds.every(isStr) || new Set(e.questionIds).size !== e.questionIds.length) return false;
   if (!isObj(e.answers) || !Object.values(e.answers).every((v) => Array.isArray(v) && v.length <= 16 && v.every((n) => isIntIn(n, 0, 15)))) return false;
@@ -90,6 +90,7 @@ function parseSettings(st: Record<string, unknown>): Settings {
     density: oneOf(st.density, ['comfortable', 'compact'] as const, defaultSettings.density),
     reduceMotion: typeof st.reduceMotion === 'boolean' ? st.reduceMotion : defaultSettings.reduceMotion,
     order: oneOf(st.order, ['syllabus', 'recommended', 'weak', 'free'] as const, defaultSettings.order),
+    startMode: oneOf(st.startMode, ['g', 'literacy', 'passport'] as const, defaultSettings.startMode),
   };
 }
 
@@ -125,7 +126,7 @@ function buildState(p: Record<string, unknown>, notes: string[]): AppState {
   const cardReviewRaw = isObj(p.cardReview) ? p.cardReview : {};
   return {
     schemaVersion: 2,
-    mode: oneOf(p.mode, ['g', 'literacy'] as const, d.mode),
+    mode: oneOf(p.mode, ['g', 'literacy', 'passport'] as const, d.mode),
     answers: filter(p.answers, isValidAnswer, '回答記録'),
     lessonsDone: Array.isArray(p.lessonsDone) ? [...new Set(p.lessonsDone.filter(isStr))] : [],
     bookmarks: Array.isArray(p.bookmarks) ? [...new Set(p.bookmarks.filter(isStr))] : [],

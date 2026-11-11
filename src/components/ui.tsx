@@ -27,7 +27,7 @@ export function Visual({ visual }: { visual: LessonVisual }) {
       {visual.kind === 'flow' && (
         <ol className="viz-flow">
           {visual.steps.map((s, i) => (
-            <li key={i}><b>{s.label}</b>{s.note && <span>{s.note}</span>}{i < visual.steps.length - 1 && <span className="viz-arrow" aria-hidden="true">→</span>}</li>
+            <li key={i}><div className="fs"><b>{s.label}</b>{s.note && <span>{s.note}</span>}</div>{i < visual.steps.length - 1 && <span className="viz-arrow" aria-hidden="true">→</span>}</li>
           ))}
         </ol>
       )}
@@ -47,7 +47,7 @@ export function Visual({ visual }: { visual: LessonVisual }) {
       )}
       {visual.kind === 'timeline' && (
         <ol className="viz-timeline">
-          {visual.events.map((e, i) => <li key={i}><b>{e.when}</b><span>{e.label}</span></li>)}
+          {visual.events.map((e, i) => <li key={i}><div className="te"><b>{e.when}</b><span>{e.label}</span></div></li>)}
         </ol>
       )}
       {visual.caption && <p className="viz-caption">{visual.caption}</p>}

@@ -1,4 +1,7 @@
 import type { Lesson } from '../types';
+import { G_EXTRA_LESSONS } from './gExtraLessons';
+import { PASSPORT_LESSONS } from './passportLessons';
+import { PASSPORT_EXTRA_LESSONS } from './passportExtraLessons';
 
 const JDLA = { title: 'JDLA G検定 公式ページ（シラバス）', url: 'https://www.jdla.org/certificate/general/' };
 const OWASP_LLM = { title: 'OWASP Top 10 for LLM Applications（プロンプトインジェクション等のリスク分類）', url: 'https://owasp.org/www-project-top-10-for-large-language-model-applications/' };
@@ -34,7 +37,7 @@ const mk = (p: P): Lesson => ({
   sources: [...(p.sources ?? [JDLA]), ...(LESSON_CH[p.syllabusId] ?? [])].filter((s, i, a) => a.findIndex((x) => x.url === s.url) === i),
 });
 
-export const LESSONS: Lesson[] = [
+const BASE_LESSONS: Lesson[] = [
   mk({
     id: 'les-g01', mode: 'g', syllabusId: 'g-01', title: '人工知能とは：定義と古典的問題',
     basic: [
@@ -308,5 +311,7 @@ export const LESSONS: Lesson[] = [
     sources: [JDLA, BUNKA_AI],
   }),
 ];
+
+export const LESSONS: Lesson[] = [...BASE_LESSONS, ...G_EXTRA_LESSONS, ...PASSPORT_LESSONS, ...PASSPORT_EXTRA_LESSONS];
 
 export const publishedLessons = LESSONS.filter((l) => l.status === 'published');

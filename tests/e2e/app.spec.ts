@@ -29,7 +29,7 @@ test('演習で回答すると正誤と解説が表示され、記録が復元�
   await page.getByRole('button', { name: 'この条件ではじめる' }).click();
   const firstChoice = page.locator('.choice').first();
   await firstChoice.click();
-  await page.getByRole('button', { name: '回答する' }).click();
+  // 単一選択は選んだ瞬間に判定される（即時フィードバック）
   await expect(page.getByRole('heading', { name: '基礎解説' })).toBeVisible();
   await expect(page.locator('.choice .reason').first()).toBeVisible(); // 回答後は各選択肢の下に判定理由を表示
   await page.reload(); // リロードしても同じセッション・同じ問題の結果が復元される（P1-3回帰）
@@ -85,7 +85,7 @@ test('演習のシャッフルを切り替えて回答できる', async ({ page 
   await expect(toggleQ).not.toBeChecked();
   await page.getByRole('button', { name: 'この条件ではじめる' }).click();
   await page.locator('.choice').first().click();
-  await page.getByRole('button', { name: '回答する' }).click();
+  // 単一選択は選んだ瞬間に判定される（即時フィードバック）
   await expect(page.getByRole('heading', { name: '基礎解説' })).toBeVisible();
 });
 
@@ -150,7 +150,7 @@ test('復習：回答後も同じ問題の解説が表示され、別の問題�
   await page.getByRole('button', { name: 'この条件ではじめる' }).click();
   const stem = await page.locator('legend h2').textContent();
   await page.locator('.choice').first().click();
-  await page.getByRole('button', { name: '回答する' }).click();
+  // 単一選択は選んだ瞬間に判定される（即時フィードバック）
   await expect(page.locator('legend h2')).toHaveText(stem ?? '');
   await expect(page.locator('.meta')).toContainText('1／3問');
   await page.getByRole('button', { name: '次の問題' }).click();
@@ -225,7 +225,7 @@ test('学習記録のエクスポートと読み込み（置き換え前に確�
 test('演習：問題検索と保存した問題の絞り込み', async ({ page }) => {
   await page.getByLabel('主要メニュー').getByRole('button', { name: '演習' }).click();
   await page.getByRole('searchbox', { name: '問題を検索' }).fill('チューリングテスト');
-  await expect(page.getByText(/対象は3問です/)).toBeVisible(); // 問題文・選択肢・解説のいずれかに含む3問
+  await expect(page.getByText(/対象は5問です/)).toBeVisible(); // 問題文・選択肢・解説のいずれかに含む5問（2026-11-11拡充後の実測）
   await page.getByLabel('出題順シャッフル').uncheck();
   await page.getByLabel('選択肢シャッフル').uncheck();
   await page.getByRole('button', { name: 'この条件ではじめる' }).click();

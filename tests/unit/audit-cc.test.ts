@@ -25,7 +25,7 @@ describe('保存データの型破損からの復旧', () => {
   });
   it('設定値が範囲外なら既定値に戻す', () => {
     const s = parseState(JSON.stringify({ ...base(), settings: { theme: 'neon', fontSize: 'xl', density: 'compact', reduceMotion: 'yes', order: 'weak' } })).state!;
-    expect(s.settings).toEqual({ theme: 'light', fontSize: 'm', density: 'compact', reduceMotion: false, order: 'weak' });
+    expect(s.settings).toEqual({ theme: 'light', fontSize: 'm', density: 'compact', reduceMotion: false, order: 'weak', startMode: 'g' });
   });
   it('不正な回答レコードだけを除外する', () => {
     const s = parseState(JSON.stringify({ ...base(), answers: [...base().answers, { questionId: 1 }, null] })).state!;

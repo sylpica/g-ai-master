@@ -1,4 +1,4 @@
-import type { Question, QuestionType } from '../types';
+import type { Question, QuestionType, SourceRef } from '../types';
 
 const JDLA = { title: 'JDLA G検定 公式ページ（シラバス）', url: 'https://www.jdla.org/certificate/general/' };
 const BUNKA = { title: '文化庁「AIと著作権に関する考え方について」', url: 'https://www.bunka.go.jp/seisaku/chosakuken/aiandcopyright.html' };
@@ -20,7 +20,7 @@ const AI_ACT_JP = { title: 'e-Gov法令検索「人工知能関連技術の研�
 const AI_PLAN = { title: '内閣府「人工知能基本計画」（令和7年12月23日閣議決定）', url: 'https://www8.cao.go.jp/cstp/ai/ai_plan/aiplan_20251223.pdf' };
 type A = [string, string, string, string];
 const q = (
-  id: string, mode: 'g' | 'literacy', syllabusId: string, stem: string, choices: A, answer: number[],
+  id: string, mode: 'g' | 'literacy' | 'passport', syllabusId: string, stem: string, choices: A, answer: number[],
   basic: string, detail: string, choiceReasons: A, difficulty: 1 | 2 | 3 = 2, type: QuestionType = 'single',
   sources: Question['sources'] = [JDLA],
 ): Question => ({
@@ -31,6 +31,17 @@ const q = (
 // choiceReasons は choices と同じ順序で記述し、データ検証テストで同数であることを担保する。
 
 import { QUESTION_SOURCE_EXTRA } from './questionSources';
+import { SOURCES_EXTRA_GA } from './sourcesExtraGA';
+import { SOURCES_EXTRA_GB } from './sourcesExtraGB';
+import { SOURCES_EXTRA_P } from './sourcesExtraP';
+const QUESTION_SOURCE_EXTRA_ALL: Record<string, SourceRef[]> = { ...QUESTION_SOURCE_EXTRA, ...SOURCES_EXTRA_GA, ...SOURCES_EXTRA_GB, ...SOURCES_EXTRA_P };
+import { G_EXTRA_QUESTIONS_1 } from './gExtraQuestions1';
+import { G_EXTRA_QUESTIONS_2 } from './gExtraQuestions2';
+import { G_EXTRA_QUESTIONS_3 } from './gExtraQuestions3';
+import { PASSPORT_QUESTIONS_1 } from './passportQuestions1';
+import { PASSPORT_QUESTIONS_2 } from './passportQuestions2';
+import { PASSPORT_EXTRA_QUESTIONS_1 } from './passportExtraQuestions1';
+import { PASSPORT_EXTRA_QUESTIONS_2 } from './passportExtraQuestions2';
 
 const RAW_QUESTIONS: Question[] = [
   q('q-g01-1', 'g', 'g-01', "人工知能（AI）の定義に関する説明として、最も適切なものはどれか。",
@@ -1368,8 +1379,15 @@ const RAW_QUESTIONS: Question[] = [
     ["入力時にも個人情報保護法の規律が及ぶ", "特定できる情報は個人情報にあたり得る", "海外サービスでも規律が及ぶ場面がある", "正しい。利用目的とデータの扱いを確認する"], 2, 'single', [JDLA, PPC_GENAI]),
 ];
 
-export const QUESTIONS: Question[] = RAW_QUESTIONS.map((x) => {
-  const extra = QUESTION_SOURCE_EXTRA[x.id];
+const ALL_RAW_QUESTIONS: Question[] = [
+  ...RAW_QUESTIONS,
+  ...G_EXTRA_QUESTIONS_1, ...G_EXTRA_QUESTIONS_2, ...G_EXTRA_QUESTIONS_3,
+  ...PASSPORT_QUESTIONS_1, ...PASSPORT_QUESTIONS_2,
+  ...PASSPORT_EXTRA_QUESTIONS_1, ...PASSPORT_EXTRA_QUESTIONS_2,
+];
+
+export const QUESTIONS: Question[] = ALL_RAW_QUESTIONS.map((x) => {
+  const extra = QUESTION_SOURCE_EXTRA_ALL[x.id];
   if (!extra) return x;
   const urls = new Set(x.sources.map((s) => s.url));
   return { ...x, sources: [...x.sources, ...extra.filter((s) => !urls.has(s.url))] };

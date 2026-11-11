@@ -6,7 +6,7 @@ import { readiness, examSessionStats } from '../../src/lib/analysis';
 import { FLASHCARDS } from '../../src/data/flashcards';
 import { publishedQuestions } from '../../src/data/questions';
 import { publishedLessons } from '../../src/data/lessons';
-import { G_SYLLABUS, LITERACY_SYLLABUS } from '../../src/data/syllabus';
+import { G_SYLLABUS, LITERACY_SYLLABUS, PASSPORT_SYLLABUS } from '../../src/data/syllabus';
 import fixtureV1 from '../fixtures/state-v1.json';
 import type { AnswerRecord, ExamSession } from '../../src/types';
 
@@ -125,7 +125,7 @@ describe('単語帳データの整合性', () => {
     expect(new Set(ids).size).toBe(ids.length);
     const qids = new Set(publishedQuestions.map((q) => q.id));
     const lids = new Set(publishedLessons.map((l) => l.id));
-    const chapters = new Set([...G_SYLLABUS, ...LITERACY_SYLLABUS].map((s) => s.id));
+    const chapters = new Set([...G_SYLLABUS, ...LITERACY_SYLLABUS, ...PASSPORT_SYLLABUS].map((s) => s.id));
     for (const c of FLASHCARDS) {
       expect(lids.has(c.lessonId ?? ''), c.id).toBe(true);
       expect(chapters.has(c.syllabusId), c.id).toBe(true);
@@ -142,14 +142,14 @@ describe('単語帳データの整合性', () => {
       for (const a of c.aliases ?? []) expect(rp.includes(a.toLowerCase()), `${c.id}: ${a}`).toBe(false);
     }
   });
-  it('G検定10章・AI教養7章のすべてにカードがある', () => {
-    for (const s of [...G_SYLLABUS, ...LITERACY_SYLLABUS]) {
+  it('全モードの全章にカードがある', () => {
+    for (const s of [...G_SYLLABUS, ...LITERACY_SYLLABUS, ...PASSPORT_SYLLABUS]) {
       expect(FLASHCARDS.some((c) => c.syllabusId === s.id), s.id).toBe(true);
     }
   });
 });
 
-describe('到達95%判定の反例（P1-2回帰）', () => {
+describe('到達判定の反例（P1-2回帰、95%ライン維持）', () => {
   const gq = publishedQuestions.filter((q) => q.mode === 'g');
   const mkAnswer = (q: (typeof gq)[number], correct = true, context: AnswerRecord['context'] = 'practice'): AnswerRecord => ({
     questionId: q.id, selected: q.answer, correct, at: '2026-11-10T00:00:00.000Z', seconds: 30, firstSeen: true, context,
@@ -161,7 +161,7 @@ describe('到達95%判定の反例（P1-2回帰）', () => {
   });
   it('初見1問正解だけでは到達しない', () => {
     const r = readiness([mkAnswer(gq[0])], [], 0, [], publishedQuestions, 10);
-    expect(r.reached95).toBe(false);
+    expect(r.reached).toBe(false);
     expect(r.unmet.length).toBeGreaterThan(0);
   });
   it('模試1回だけでは到達しない（回答レコード数では数えない）', () => {
@@ -169,7 +169,7 @@ describe('到達95%判定の反例（P1-2回帰）', () => {
     const answers = examQs.map((q) => mkAnswer(q, true, 'exam'));
     const r = readiness(answers, [], 0, [mkExam(examQs, 'e1')], publishedQuestions, 10);
     expect(r.examSessions).toBe(1);
-    expect(r.reached95).toBe(false);
+    expect(r.reached).toBe(false);
   });
   it('易しい1章だけの初見では章カバーで弾かれる', () => {
     const oneChapter = gq.filter((q) => q.syllabusId === 'g-01');
@@ -178,7 +178,7 @@ describe('到達95%判定の反例（P1-2回帰）', () => {
     const examAnswers = exams.flatMap((e) => e.questionIds.map((id) => mkAnswer(gq.find((q) => q.id === id)!, true, 'exam')));
     const r = readiness([...answers, ...examAnswers], [], 0, exams, publishedQuestions, 10);
     expect(r.chapterCoverage).toBeLessThan(0.8);
-    expect(r.reached95).toBe(false);
+    expect(r.reached).toBe(false);
   });
   it('全条件を満たせば到達する', () => {
     const answers = gq.slice(0, 200).map((q) => mkAnswer(q));
@@ -187,7 +187,20 @@ describe('到達95%判定の反例（P1-2回帰）', () => {
     const r = readiness([...answers, ...examAnswers], [], 0, exams, publishedQuestions, 10);
     expect(r.firstSeenUnique).toBeGreaterThanOrEqual(150);
     expect(r.chapterCoverage).toBeGreaterThanOrEqual(0.8);
-    expect(r.reached95).toBe(true);
+    expect(r.reached).toBe(true);
+  });
+  it('95%ライン：正答率96%では到達でき、94%では到達しない', () => {
+    const build = (practiceCorrect: number, examCorrectPer: number) => {
+      const practice = gq.slice(0, 200).map((q, i) => mkAnswer(q, i < practiceCorrect));
+      const exams = [mkExam(gq.slice(0, 30), 'e1'), mkExam(gq.slice(30, 60), 'e2'), mkExam(gq.slice(60, 90), 'e3')];
+      const examAnswers = exams.flatMap((e) => e.questionIds.map((id, i) => mkAnswer(gq.find((q) => q.id === id)!, i < examCorrectPer, 'exam')));
+      return readiness([...practice, ...examAnswers], [], 0, exams, publishedQuestions, 10);
+    };
+    const ok = build(193, 29); // 初見 (193+87)/290≒96.6%・模試 87/90≒96.7%
+    expect(ok.firstSeenUnique).toBeGreaterThanOrEqual(150);
+    expect(ok.reached).toBe(true);
+    const ng = build(186, 28); // 初見 (186+84)/290≒93.1%・模試 84/90≒93.3%
+    expect(ng.reached).toBe(false);
   });
   it('未提出の模試はセッション数に数えない', () => {
     const e = mkExam(gq.slice(0, 10), 'e-open');

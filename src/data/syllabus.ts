@@ -37,5 +37,22 @@ export const LITERACY_SYLLABUS: SyllabusNode[] = [
   l('l-07', '法律・倫理・社会', '著作権／個人情報／営業秘密／AI法制度／ガバナンス／公平性／説明責任／労働・環境／悪用防止', 7),
 ];
 
-export const ALL_SYLLABUS: SyllabusNode[] = [...G_SYLLABUS, ...LITERACY_SYLLABUS];
+// GUGA（生成AI活用普及協会）公式シラバス（2027年2月試験より適用）を2026-11-11に確認し、大分野→中分野（章）→学習項目の3層に構造化したもの。
+// 出典: https://guga.or.jp/outline/ ／ シラバスPDF: https://guga.or.jp/assets/syllabus.pdf
+export const PASSPORT_SYLLABUS_VERIFIED_AT = '2026-11-11';
+export const PASSPORT_SYLLABUS_VERSION = '2027年2月試験より適用';
+
+const p = (id: string, area: string, chapter: string, title: string, order: number, prerequisites: string[] = []): SyllabusNode => ({
+  id, mode: 'passport', area, chapter, title, order, prerequisites,
+});
+
+export const PASSPORT_SYLLABUS: SyllabusNode[] = [
+  p('p-01', '技術分野', 'AIの基礎と歴史', 'AIの基本的な仕組み（ルールベース／機械学習）／機械学習（教師あり・教師なし・強化学習）／ニューラルネットワークとディープラーニングの仕組み（CNN／RNN／Transformer／VAE／GAN）／識別系AIと生成系AI／AIの歴史とシンギュラリティ', 1),
+  p('p-02', '技術分野', '生成AI', '生成AIを支える技術革新（Transformer／拡散モデル／基盤モデル／マルチモーダル）／学習プロセス（事前学習／ファインチューニング／RLHF／スケーリング則）／生成プロセス（トークン化／次トークン予測／ハルシネーション／生成パラメータ／コンテキストウィンドウ）／LLMの基礎（オンプレミス／オープンソース）／ChatGPTと主要な生成AIモデル／各モダリティの生成AI', 2, ['p-01']),
+  p('p-03', '技術分野', 'AIエージェント', 'AIエージェントの定義と自律性／RAG（検索拡張生成）／エージェントの仕組み（タスク分解／ツール実行／メモリ／コンテキストエンジニアリング）／MCP・Agent Skills・外部連携／ツールと活用事例／リスク・安全性・評価', 3, ['p-02']),
+  p('p-04', '法律・倫理・ガバナンス分野', '生成AIのリスク予防・AI倫理・ガバナンス', '利用者の基本マインドセット／生成AIの代表的リスク／シャドーAIと企業コンプライアンス／AI出力の評価と検証／個人情報・プライバシー・秘密保持／著作権・知的財産・生成物の権利／AI倫理とAI事業者ガイドライン／AIガバナンスと社内ガイドライン／AI法・国際ルール・AI安全保障', 4),
+  p('p-05', '実践分野', '生成AIの実践と活用事例', 'プロンプトエンジニアリング／文書作成・コミュニケーション業務／企画・マーケティング業務／クリエイティブ制作／データ分析・リサーチ業務／開発・業務自動化／業種別活用', 5, ['p-02']),
+];
+
+export const ALL_SYLLABUS: SyllabusNode[] = [...G_SYLLABUS, ...LITERACY_SYLLABUS, ...PASSPORT_SYLLABUS];
 export const syllabusById = (id: string): SyllabusNode | undefined => ALL_SYLLABUS.find((s) => s.id === id);

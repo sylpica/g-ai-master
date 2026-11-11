@@ -1,4 +1,4 @@
-export type Mode = 'g' | 'literacy';
+export type Mode = 'g' | 'literacy' | 'passport';
 export type PublishStatus = 'published' | 'draft' | 'review' | 'suspended' | 'deprecated';
 
 export interface SourceRef { title: string; url: string; }
@@ -155,6 +155,8 @@ export interface Settings {
   density: 'comfortable' | 'compact';
   reduceMotion: boolean;
   order: 'syllabus' | 'recommended' | 'weak' | 'free';
+  /** アプリを開いた時に最初に表示するモード */
+  startMode: Mode;
 }
 
 export interface AppState {

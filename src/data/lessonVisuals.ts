@@ -1,10 +1,15 @@
 import type { LessonVisual } from '../types';
+import { G_EXTRA_VISUALS, G_EXTRA_VISUAL_IDS } from './gExtraVisuals';
+import { PASSPORT_VISUALS, PASSPORT_VISUAL_IDS } from './passportVisuals';
+import { PASSPORT_EXTRA_VISUALS, PASSPORT_EXTRA_VISUAL_IDS } from './passportExtraVisuals';
+import { G_MORE_VISUALS, G_MORE_VISUAL_IDS } from './moreVisualsG';
+import { PL_MORE_VISUALS, PL_MORE_VISUAL_IDS } from './moreVisualsPL';
 
 // 教材の図表データ。すべてテキストで描画できる構造化データで、代替テキストを兼ねる。
 // 内容は各教材（src/data/lessons.ts）の basic/detail/keyPoints と矛盾しない範囲に限定し、
 // データの裏付けのない性能比較・順位・スコアは書かない。
 
-export const LESSON_VISUALS: Record<string, LessonVisual> = {
+const BASE_VISUALS: Record<string, LessonVisual> = {
   // ---- G検定 ----
   'vis-g01-nest': {
     kind: 'nest',
@@ -322,8 +327,8 @@ export const LESSON_VISUALS: Record<string, LessonVisual> = {
   },
 };
 
-/** 教材ID → 図表IDの対応。全教材に最低1つ */
-export const LESSON_VISUAL_IDS: Record<string, string[]> = {
+/** 教材ID → 図表IDの対応（基礎分）。追加分は末尾で統合する */
+const BASE_VISUAL_IDS: Record<string, string[]> = {
   'les-g01': ['vis-g01-nest'],
   'les-g02': ['vis-g02-search', 'vis-g02-history'],
   'les-g03': ['vis-g03-learning-types', 'vis-g03-split'],
@@ -342,3 +347,19 @@ export const LESSON_VISUAL_IDS: Record<string, string[]> = {
   'les-l06': ['vis-l06-verify'],
   'les-l07': ['vis-l07-privacy'],
 };
+
+/** 全図表の統合（基礎＋G追加＋パスポート＋増強分） */
+export const LESSON_VISUALS: Record<string, LessonVisual> = {
+  ...BASE_VISUALS, ...G_EXTRA_VISUALS, ...PASSPORT_VISUALS, ...PASSPORT_EXTRA_VISUALS, ...G_MORE_VISUALS, ...PL_MORE_VISUALS,
+};
+
+const mergeVisualIds = (...maps: Record<string, string[]>[]): Record<string, string[]> => {
+  const out: Record<string, string[]> = {};
+  for (const m of maps) for (const [k, v] of Object.entries(m)) out[k] = [...(out[k] ?? []), ...v];
+  return out;
+};
+
+/** 教材ID → 図表IDの対応（統合済み） */
+export const LESSON_VISUAL_IDS: Record<string, string[]> = mergeVisualIds(
+  BASE_VISUAL_IDS, G_EXTRA_VISUAL_IDS, PASSPORT_VISUAL_IDS, PASSPORT_EXTRA_VISUAL_IDS, G_MORE_VISUAL_IDS, PL_MORE_VISUAL_IDS,
+);

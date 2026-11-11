@@ -51,7 +51,7 @@ describe('analysis', () => {
     const r = readiness([
       { questionId: qs[0].id, selected: qs[0].answer, correct: true, at: '2026-11-02T00:00:00Z', seconds: 1, firstSeen: true, context: 'exam' },
     ], [], 0, [], publishedQuestions, 10);
-    expect(r.reached95).toBe(false);
+    expect(r.reached).toBe(false);
     expect(r.note).toContain('保証');
   });
 });
