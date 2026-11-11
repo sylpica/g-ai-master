@@ -3,6 +3,9 @@ import { QUESTIONS, publishedQuestions } from '../../src/data/questions';
 import { LESSONS, publishedLessons } from '../../src/data/lessons';
 import { EXERCISES } from '../../src/data/exercises';
 import { ALL_SYLLABUS, syllabusById } from '../../src/data/syllabus';
+import { ILLUSTRATIONS } from '../../src/data/illustrations';
+
+const IMG64 = import.meta.glob('../../public/img64/*.b64', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
 
 const norm = (s: string) => s.replace(/\s+/g, '').replace(/[。、，,．.「」『』（）()]/g, '').toLowerCase();
 
@@ -98,6 +101,21 @@ describe('出典の裏付け（二重監査）', () => {
   });
   it('全教材が2件以上の出典を持つ', () => {
     for (const l of LESSONS.filter((x) => x.status === 'published')) expect(l.sources.length, l.id).toBeGreaterThanOrEqual(2);
+  });
+});
+
+describe('イメージ図', () => {
+  it('全教材に1点ずつあり、同梱ファイルが実在する', () => {
+    for (const l of publishedLessons) {
+      const meta = ILLUSTRATIONS[l.id];
+      expect(meta, `${l.id} のメタデータ`).toBeTruthy();
+      expect(meta.alt.length, l.id).toBeGreaterThan(10);
+      expect(meta.caption.length, l.id).toBeGreaterThan(5);
+      const body = IMG64[`../../public/img64/${l.id}.b64`];
+      expect(typeof body, `${l.id} の同梱画像`).toBe('string');
+      expect(body.length, l.id).toBeGreaterThan(8000);
+    }
+    expect(Object.keys(ILLUSTRATIONS).length).toBe(publishedLessons.length);
   });
 });
 

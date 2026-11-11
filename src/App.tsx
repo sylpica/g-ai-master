@@ -5,6 +5,7 @@ import { publishedLessons } from './data/lessons';
 import { publishedQuestions } from './data/questions';
 import { publishedFlashcards } from './data/flashcards';
 import { LESSON_VISUAL_IDS } from './data/lessonVisuals';
+import { ILLUSTRATIONS } from './data/illustrations';
 import { EXERCISES, MODEL_INFOS } from './data/exercises';
 import { NEWS_ITEMS, NEWS_LAST_ADDED } from './data/news';
 import { loadState, saveState, exportState, defaultState, salvageState, validateImport, clampGoal, BACKUP_KEY } from './lib/storage';
@@ -28,6 +29,37 @@ const SUMMARY_PDF_B64: Record<Mode, string> = {
   passport: `${import.meta.env.BASE_URL}pdf64/passport-summary.b64`,
   literacy: `${import.meta.env.BASE_URL}pdf64/literacy-summary.b64`,
 };
+/** 同梱イメージ図（Base64）を復元して表示する画像。復元結果はモジュール内でキャッシュする */
+const bundledImageCache = new Map<string, Promise<string>>();
+const loadBundledImage = (lessonId: string): Promise<string> => {
+  const hit = bundledImageCache.get(lessonId);
+  if (hit) return hit;
+  const p = (async () => {
+    // Blob URLは環境により画像として復号できない場合があるため、data URIで渡す
+    const text = await (await fetch(`${import.meta.env.BASE_URL}img64/${lessonId}.b64`)).text();
+    return `data:image/webp;base64,${text.replace(/\s+/g, '')}`;
+  })();
+  bundledImageCache.set(lessonId, p);
+  return p;
+};
+function LessonIllustration({ lessonId }: { lessonId: string }) {
+  const meta = ILLUSTRATIONS[lessonId];
+  const [src, setSrc] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    if (meta) loadBundledImage(lessonId).then((u) => { if (alive) setSrc(u); }).catch(() => undefined);
+    return () => { alive = false; };
+  }, [lessonId, meta]);
+  if (!meta) return null;
+  return (
+    <figure className="lesson-fig">
+      {src
+        ? <img src={src} alt={meta.alt} width={1152} height={648} />
+        : <div className="lesson-fig-ph" role="img" aria-label={meta.alt}>イメージ図を読み込み中…</div>}
+      <figcaption>{meta.caption}</figcaption>
+    </figure>
+  );
+}
 const openSummaryPdf = async (mode: Mode) => {
   const w = window.open('', '_blank'); // ポップアップブロック回避のため先に空タブを開く
   try {
@@ -407,6 +439,7 @@ function LessonView({ lesson, state, onDone, onBack, onBookmark, onOpenCard, onP
         <button aria-pressed={bookmarked} onClick={onBookmark}>{bookmarked ? '★ ブックマーク済み' : '☆ ブックマーク'}</button>
         <button onClick={onSyllabus}>シラバスでの位置</button></p>
       <h1>{lesson.title}</h1>
+      <LessonIllustration lessonId={lesson.id} />
       <div className="card keypoints">
         <h2>この教材で覚えること</h2>
         <ul>{lesson.keyPoints.map((k) => <li key={k}>{k}</li>)}</ul>

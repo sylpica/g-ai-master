@@ -142,6 +142,15 @@ test('フロー図のラベルが狭幅で縦書き状に潰れない（2026-11-
   for (const h of heights) expect(h).toBeLessThan(48); // 1文字幅に潰れると4文字で70px超になる
 });
 
+test('教材にイメージ図が表示される', async ({ page }) => {
+  await page.getByLabel('主要メニュー').getByRole('button', { name: '教材' }).click();
+  await page.locator('.lesson-row').first().click();
+  const img = page.locator('.lesson-fig img');
+  await expect(img).toBeVisible();
+  await expect.poll(async () => img.evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(100);
+  await expect(page.locator('.lesson-fig figcaption')).not.toHaveText('');
+});
+
 test('教材画面から要点まとめPDFを開ける', async ({ page }) => {
   await page.getByLabel('主要メニュー').getByRole('button', { name: '教材' }).click();
   await expect(page.getByRole('button', { name: '要点まとめPDFを開く' })).toBeVisible();
