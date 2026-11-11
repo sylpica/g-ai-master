@@ -3,7 +3,7 @@
     "react": "19.1.1",
     "react-dom": "19.1.1"
   },
-  "description": "AI総合学習アプリ（G検定取得＋AI教養）",
+  "description": "AI総合マスター（G検定・生成AIパスポート取得＋AI教養）",
   "devDependencies": {
     "@playwright/test": "^1.56.1",
     "@types/react": "19.1.12",

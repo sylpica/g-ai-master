@@ -196,7 +196,7 @@ export default function App() {
       <a href="#main" className="skip">本文へスキップ</a>
       <header className="top"><div className="wrap">
         <div className="top-in">
-          <span className="logo">AI総合学習</span>
+          <span className="logo">AI総合マスター</span>
           <div role="group" aria-label="学習モード" className="seg">
             <button className={state.mode === 'g' ? 'primary' : ''} aria-pressed={state.mode === 'g'} onClick={() => { setMode('g'); nav({ name: 'home' }); }}>G検定取得</button>
             <button className={state.mode === 'passport' ? 'primary' : ''} aria-pressed={state.mode === 'passport'} onClick={() => { setMode('passport'); nav({ name: 'home' }); }}>生成AIパスポート</button>
