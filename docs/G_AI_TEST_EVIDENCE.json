@@ -1,1 +1,168 @@
-{"after":{"contentVersion":"2026.11.6"},"baseline":{"contentVersion":"2026.11.5","ghPagesSha":"6780c3a","mainSha":"8d9c11e"},"browserWalkAfter":{"checks":{"cards meaning-first first card":"意味面・用語の表示なし","cards term-first first card":"用語面","lesson-g03 visuals":2,"lesson-g08 visuals":2,"practice reload restore":"同じ問題・結果が復元される","term tap definition pop":"表示される"},"consoleErrors":0,"evidenceDir":"audit-evidence/after/","screenshots":9,"script":"scripts/verify-after.mjs","widthMatrix":{"horizontalOverflow":"なし（全18条件）","screens":["home","lesson-g03","cards"],"widths":[320,390,768,1024,1280,1440]}},"browserWalkBefore":{"evidenceDir":"audit-evidence/before/","reproduced":["P0-1 インポートで記録消失","P0-2 破損時に無警告で自動上書き","P0-4 シャッフル先頭分布 min0/max762（300要素×10000シード）","P1-1 復習画面に保存ボタンなし","P1-3 演習中リロードでホームへ","P1-4 AI教養教材に検索なし"]},"build":{"assets":["index.html 1.08 kB","assets/index-*.js 79.09 kB","assets/vendor-*.js 186.62 kB","assets/content-*.js 619.25 kB","assets/index-*.css 15.55 kB"],"command":"npm run build","ok":true,"warnings":["content チャンクが500 kB超（データ分離済みで実害なし、継続監視）"]},"content":{"flashcards":128,"lessonVisuals":25,"lessons":17,"newsItems":16,"questions":{"g":300,"literacy":30,"total":330}},"e2e":{"command":"PW_PORT=4197 npx playwright test","covers":["単語帳の両方向開始（1枚目の面と用語マスク）","単語帳ブックマーク限定セッション","深いリンク（#/lesson/les-g01、#/cards）とリロード維持","壊れたインポートの拒否と既存記録の保持（P0-1）","保存データ破損時の退避・警告・部分復旧（P0-2）","演習リロードでのセッション復元（P1-3）","フル模試145問・一時停止なし","教材の図表表示（les-g08 混同行列）","スマホ幅ナビ全項目表示（320/375/430px）"],"failed":0,"files":["tests/e2e/app.spec.ts (17)","tests/e2e/overhaul.spec.ts (8)"],"passed":25},"generatedAt":"2026-11-11T02:25:00+09:00","knownResiduals":["ホームの375px縦スクロール量は再設計前1149px→1457px（単語帳導線と到達条件の明示を追加したため）。次のアクションは最上部に固定済み","WebKit/Firefox/実機/スクリーンリーダーでの確認は未実施","content チャンク 619 kB（gzip 171 kB）。教材・問題データが主体で、初回読み込み後の再訪では vendor と分離されキャッシュが効く"],"repo":"sylpica/g-ai-master","typecheck":{"command":"npx tsc --noEmit -p .","errors":0},"unitTests":{"command":"npx vitest run","failed":0,"files":5,"includes":["v1→v2移行の無損失（フィクスチャ照合と往復同一性）","インポート厳格検証（P0-1回帰：answers文字列の壊れたJSONを拒否）","破損時の保護（P0-2回帰：corruptを検出し自動上書きしない、部分復旧）","シャッフル分布（P0-4回帰：300要素×10000シードで先頭位置 min>10, max<70）","単語帳データ整合性（ID一意、参照先実在、reversePromptの用語漏れなし、全17章カバー）","到達95%判定の反例（P1-2回帰：初見1問・模試1回・1章だけでは到達しない、全条件充足で到達）","単語帳の間隔反復（覚えた→1日→3日→ease倍、あいまい/覚えていないの分岐）"],"passed":65}}
+{
+ "after": {
+  "contentVersion": "2026.11.6"
+ },
+ "baseline": {
+  "contentVersion": "2026.11.5",
+  "ghPagesSha": "6780c3a",
+  "mainSha": "8d9c11e"
+ },
+ "browserWalkAfter": {
+  "checks": {
+   "cards meaning-first first card": "意味面・用語の表示なし",
+   "cards term-first first card": "用語面",
+   "lesson-g03 visuals": 2,
+   "lesson-g08 visuals": 2,
+   "practice reload restore": "同じ問題・結果が復元される",
+   "term tap definition pop": "表示される"
+  },
+  "consoleErrors": 0,
+  "evidenceDir": "audit-evidence/after/",
+  "screenshots": 9,
+  "script": "scripts/verify-after.mjs",
+  "widthMatrix": {
+   "horizontalOverflow": "なし（全18条件）",
+   "screens": [
+    "home",
+    "lesson-g03",
+    "cards"
+   ],
+   "widths": [
+    320,
+    390,
+    768,
+    1024,
+    1280,
+    1440
+   ]
+  }
+ },
+ "browserWalkBefore": {
+  "evidenceDir": "audit-evidence/before/",
+  "reproduced": [
+   "P0-1 インポートで記録消失",
+   "P0-2 破損時に無警告で自動上書き",
+   "P0-4 シャッフル先頭分布 min0/max762（300要素×10000シード）",
+   "P1-1 復習画面に保存ボタンなし",
+   "P1-3 演習中リロードでホームへ",
+   "P1-4 AI教養教材に検索なし"
+  ]
+ },
+ "build": {
+  "assets": [
+   "index.html 1.08 kB",
+   "assets/index-*.js 79.09 kB",
+   "assets/vendor-*.js 186.62 kB",
+   "assets/content-*.js 619.25 kB",
+   "assets/index-*.css 15.55 kB"
+  ],
+  "command": "npm run build",
+  "ok": true,
+  "warnings": [
+   "content チャンクが500 kB超（データ分離済みで実害なし、継続監視）"
+  ]
+ },
+ "content": {
+  "flashcards": 128,
+  "lessonVisuals": 25,
+  "lessons": 17,
+  "newsItems": 16,
+  "questions": {
+   "g": 300,
+   "literacy": 30,
+   "total": 330
+  }
+ },
+ "e2e": {
+  "command": "PW_PORT=4197 npx playwright test",
+  "covers": [
+   "単語帳の両方向開始（1枚目の面と用語マスク）",
+   "単語帳ブックマーク限定セッション",
+   "深いリンク（#/lesson/les-g01、#/cards）とリロード維持",
+   "壊れたインポートの拒否と既存記録の保持（P0-1）",
+   "保存データ破損時の退避・警告・部分復旧（P0-2）",
+   "演習リロードでのセッション復元（P1-3）",
+   "フル模試145問・一時停止なし",
+   "教材の図表表示（les-g08 混同行列）",
+   "スマホ幅ナビ全項目表示（320/375/430px）"
+  ],
+  "failed": 0,
+  "files": [
+   "tests/e2e/app.spec.ts (17)",
+   "tests/e2e/overhaul.spec.ts (8)"
+  ],
+  "passed": 25
+ },
+ "generatedAt": "2026-11-11T02:25:00+09:00",
+ "knownResiduals": [
+  "ホームの375px縦スクロール量は再設計前1149px→1457px（単語帳導線と到達条件の明示を追加したため）。次のアクションは最上部に固定済み",
+  "WebKit/Firefox/実機/スクリーンリーダーでの確認は未実施",
+  "content チャンク 619 kB（gzip 171 kB）。教材・問題データが主体で、初回読み込み後の再訪では vendor と分離されキャッシュが効く"
+ ],
+ "repo": "sylpica/g-ai-master",
+ "typecheck": {
+  "command": "npx tsc --noEmit -p .",
+  "errors": 0
+ },
+ "unitTests": {
+  "command": "npx vitest run",
+  "failed": 0,
+  "files": 5,
+  "includes": [
+   "v1→v2移行の無損失（フィクスチャ照合と往復同一性）",
+   "インポート厳格検証（P0-1回帰：answers文字列の壊れたJSONを拒否）",
+   "破損時の保護（P0-2回帰：corruptを検出し自動上書きしない、部分復旧）",
+   "シャッフル分布（P0-4回帰：300要素×10000シードで先頭位置 min>10, max<70）",
+   "単語帳データ整合性（ID一意、参照先実在、reversePromptの用語漏れなし、全17章カバー）",
+   "到達95%判定の反例（P1-2回帰：初見1問・模試1回・1章だけでは到達しない、全条件充足で到達）",
+   "単語帳の間隔反復（覚えた→1日→3日→ease倍、あいまい/覚えていないの分岐）"
+  ],
+  "passed": 65
+ },
+ "reaudit20261112": {
+  "environment": "Linux container / Chromium (Playwright, /opt/pw-browsers/chromium) / ローカル本番ビルド (vite preview)",
+  "baseline": {
+   "mainSha": "a15ef5e",
+   "ghPagesSha": "c91eb54",
+   "contentVersion": "2026.11.13",
+   "unit": "68/68",
+   "e2e": "35/35",
+   "typecheck": 0
+  },
+  "after": {
+   "contentVersion": "2026.11.14",
+   "unit": "68/68",
+   "e2e": "40/40",
+   "typecheck": 0,
+   "build": "ok"
+  },
+  "findings": {
+   "critical": 1,
+   "high": 3,
+   "medium": 5,
+   "low": 2,
+   "fixed": 11
+  },
+  "browserChecks": {
+   "practice 12問の表示・記録・復習の一致": "pass",
+   "shuffle 40回の先頭の種類": "38",
+   "import 不正7種で保存データ不変": "pass",
+   "boot 破損3種で原本保持": "pass",
+   "exam 提出6問の記録": "修正前0件→修正後6件",
+   "exam 時間切れ自動提出の記録": "修正前0件→修正後1件",
+   "card 一覧選択／深いリンク": "修正前は別カード→修正後は対象カード",
+   "width 320-1440 横はみ出し": "修正前 320px:56px・375px:1px→修正後 0",
+   "offline reload": "失敗（Service Worker なし・未対応）"
+  },
+  "notRun": [
+   "WebKit/Firefox/実機",
+   "スクリーンリーダー",
+   "400%拡大",
+   "ソフトウェアキーボード",
+   "低速端末の性能実測",
+   "問題・出典内容の再照合"
+  ],
+  "evidenceDir": "audit-evidence/reaudit-20261112/",
+  "script": "scripts/reaudit-walk.mjs"
+ }
+}

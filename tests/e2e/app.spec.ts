@@ -17,8 +17,8 @@ test('初回アクセスとモード切替で状態が失われない', async ({
 test('教材を開いて学習済みにできる', async ({ page }) => {
   await page.getByLabel('主要メニュー').getByRole('button', { name: '教材' }).click();
   await page.getByRole('button', { name: /人工知能とは：定義/ }).click();
-  await expect(page.getByRole('heading', { name: '基礎解説' })).toBeVisible();
-  await page.locator('summary', { hasText: '詳細解説を開く' }).click();
+  await expect(page.getByRole('tab', { name: '要点と図' })).toHaveAttribute('aria-selected', 'true');
+  await page.getByRole('tab', { name: '詳細・出典' }).click();
   await expect(page.getByText(/代表的な古典的問題/)).toBeVisible();
   await page.getByRole('button', { name: '学習済みにする' }).click();
   await expect(page.getByRole('button', { name: '学習済み' })).toBeDisabled();
@@ -188,7 +188,7 @@ test('スマートフォン幅：上部バーは1行、主要メニューは画�
 test('教材を開いた状態でメニューを押すと、その画面へ移動する', async ({ page }) => {
   await page.getByLabel('主要メニュー').getByRole('button', { name: '教材' }).click();
   await page.getByRole('button', { name: /人工知能とは：定義/ }).click();
-  await expect(page.getByRole('heading', { name: '基礎解説' })).toBeVisible();
+  await expect(page.getByRole('tab', { name: '要点と図' })).toBeVisible();
   await page.getByLabel('主要メニュー').getByRole('button', { name: '演習' }).click();
   await expect(page.getByRole('heading', { name: '演習', exact: true })).toBeVisible();
 });

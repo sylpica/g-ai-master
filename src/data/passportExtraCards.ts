@@ -149,7 +149,7 @@ export const PASSPORT_EXTRA_CARDS: Flashcard[] = [
   c({
     id: 'card-p03-53', mode: 'passport', syllabusId: 'p-03', conceptId: 'q-p03-7', term: 'Graph RAG',
     definition: '文書から要素とその関係を知識グラフとして整理し、関係をたどって関連情報を集めるRAGの発展形。複数の情報をつなぐ必要がある質問に強い。',
-    reversePrompt: '知識グラフの関係をたどって情報を集める、RAGの発展形は？',
+    reversePrompt: '知識グラフの関係をたどって情報を集める、検索拡張生成の発展形は？',
     detail: '通常のRAGは文書の断片の類似で検索するが、Graph RAGは「誰と誰がどう関係するか」という構造を使う。グラフの構築と維持に手間がかかる点が課題。',
     example: '「A社の担当者と過去に関わった取引先は」といった、関係の連鎖を問う質問に答えるために使われる。',
     confusion: '質問を書き換えて検索を繰り返すAgentic RAGとは別の発展形。グラフを使う点が特徴。',

@@ -50,9 +50,9 @@ test('単語帳：ブックマークしたカードだけで開始できる', as
 
 test('深いリンク：教材と単語帳へ直接アクセスでき、リロードで維持される', async ({ page }) => {
   await page.goto('/#/lesson/les-g01');
-  await expect(page.getByRole('heading', { name: '基礎解説' })).toBeVisible();
+  await expect(page.getByRole('tab', { name: '要点と図' })).toBeVisible();
   await page.reload();
-  await expect(page.getByRole('heading', { name: '基礎解説' })).toBeVisible();
+  await expect(page.getByRole('tab', { name: '要点と図' })).toBeVisible();
   await page.goto('/#/cards');
   await expect(page.getByRole('heading', { name: /単語帳/ })).toBeVisible();
 });
@@ -187,15 +187,16 @@ test('教材にイメージ図が本文中に表示される', async ({ page }) 
   await page.locator('.lesson-row').first().click();
   // タイトル直下の装飾ではなく、基礎解説カードの文章の中に置かれていること
   await expect(page.locator('article > .lesson-fig')).toHaveCount(0);
-  const card = page.locator('.card', { has: page.getByRole('heading', { name: '基礎解説' }) });
+  await page.getByRole('tab', { name: '解説', exact: true }).click();
+  const card = page.locator('#lesson-pane .card');
   const img = card.locator('.lesson-fig img');
   await img.scrollIntoViewIfNeeded();
   await expect(img).toBeVisible();
   await expect.poll(async () => img.evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(100);
   await expect(card.locator('.lesson-fig figcaption')).not.toHaveText('');
   // 詳細解説の中にも、その段落の内容に合わせた図が1点入っていること
-  await page.getByText('詳細解説を開く').click();
-  const dImg = page.locator('details .lesson-fig img');
+  await page.getByRole('tab', { name: '詳細・出典' }).click();
+  const dImg = page.locator('#lesson-pane .lesson-fig img');
   await dImg.scrollIntoViewIfNeeded();
   await expect(dImg).toBeVisible();
   await expect.poll(async () => dImg.evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(100);
@@ -209,4 +210,84 @@ test('教材画面から要点まとめPDFを開ける', async ({ page }) => {
     return r.ok ? (await r.text()).length : 0;
   });
   expect(b64).toBeGreaterThan(1000000); // 同梱されたPDF（Base64）が取得できる
+});
+
+// ===== 2026.11.14 再監査の回帰 =====
+test('模試：提出した回答が回答履歴・復習・分析に記録される（提出しても記録0件だった欠陥の回帰）', async ({ page }) => {
+  page.on('dialog', (d) => void d.accept());
+  await page.goto('/#/exam');
+  await page.locator('.card', { hasText: '短縮模試' }).getByRole('button', { name: '開始' }).click();
+  for (let i = 0; i < 3; i++) {
+    await page.locator('button.choice').first().click();
+    await page.getByRole('button', { name: '次へ' }).click();
+  }
+  await page.getByRole('button', { name: '提出する' }).click();
+  await expect(page.getByText(/直近の結果/)).toBeVisible();
+  const st = await page.evaluate(() => JSON.parse(localStorage.getItem('g-ai-master:state:v1')!));
+  const exam = st.exams[0];
+  const recs = st.answers.filter((a: { context: string }) => a.context === 'exam');
+  expect(recs.map((a: { questionId: string }) => a.questionId).sort()).toEqual(Object.keys(exam.answers).sort());
+  expect(recs).toHaveLength(3);
+  for (const a of recs) { expect(a.selected).toEqual(exam.answers[a.questionId]); expect(st.review[a.questionId]).toBeTruthy(); }
+  await page.goto('/#/analysis');
+  await expect(page.locator('main')).not.toContainText('まだ回答記録がありません');
+});
+
+test('単語帳：シャッフルONでも、一覧で選んだカードと深いリンクのカードが開く', async ({ page }) => {
+  await page.goto('/#/cards');
+  await page.getByRole('button', { name: '一覧から選ぶ' }).click();
+  const row = page.locator('.card-row').nth(9);
+  const term = await row.locator('b').innerText();
+  await row.click();
+  await expect(page.locator('.flash-face .card-term')).toHaveText(term);
+  // セッション進行中に別カードの深いリンクへ移動しても、そのカードが表示される
+  await page.goto('/#/card/card-g05-01');
+  const s = await page.evaluate(() => JSON.parse(sessionStorage.getItem('g-ai:card-session:g')!));
+  expect(s.ids[s.pos]).toBe('card-g05-01');
+  expect(new Set(s.ids).size).toBe(s.ids.length);
+});
+
+test('上部バーとメニュー：320〜390pxでモード切替が見切れず、メニューの文字が折り返さない', async ({ page }) => {
+  for (const w of [320, 375, 390]) {
+    await page.setViewportSize({ width: w, height: 700 });
+    await page.goto('/');
+    const r = await page.evaluate(() => ({
+      over: document.documentElement.scrollWidth - window.innerWidth,
+      cut: [...document.querySelectorAll('header button')].filter((b) => { const x = b.getBoundingClientRect(); return x.right > window.innerWidth + 0.5 || x.left < -0.5 || b.scrollWidth > b.clientWidth + 1; }).map((b) => b.textContent),
+      wrapped: [...document.querySelectorAll('nav.main button, header .seg button')].filter((b) => { const g = document.createRange(); g.selectNodeContents(b); return new Set([...g.getClientRects()].map((x) => Math.round(x.top))).size > 1; }).map((b) => b.textContent),
+    }));
+    expect(r, `幅${w}px`).toEqual({ over: 0, cut: [], wrapped: [] });
+  }
+});
+
+test('ホーム：375×812で主要操作（次にやること・学習の流れ・指標）が最初の一画面に収まる', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto('/');
+  const navTop = (await page.locator('nav.main').boundingBox())!.y;
+  for (const sel of ['.card.next button', '.flow li:last-child button', '.kpi', '.today .bar']) {
+    const b = (await page.locator(sel).first().boundingBox())!;
+    expect(b.y + b.height, sel).toBeLessThanOrEqual(navTop);
+  }
+});
+
+test('復習：期限の問題がなくても、直近で間違えた問題の解き直しへ進める', async ({ page }) => {
+  await page.goto('/#/practice');
+  await page.getByLabel('選択肢シャッフル').uncheck();
+  await page.getByLabel('出題順シャッフル').uncheck();
+  await page.getByRole('button', { name: 'この条件ではじめる' }).click();
+  // 先頭の選択肢を選び続け、最初に誤答になった問題を記録する
+  let stem = '';
+  for (let i = 0; i < 12; i++) {
+    stem = await page.locator('fieldset legend h2').innerText();
+    await page.locator('button.choice').first().click();
+    if (await page.locator('.fb .bad').count()) break;
+    await page.locator('.fb button').click();
+  }
+  const wrong = await page.evaluate(() => JSON.parse(localStorage.getItem('g-ai-master:state:v1')!).answers.filter((a: { correct: boolean }) => !a.correct).length);
+  expect(wrong).toBeGreaterThan(0);
+  await page.goto('/#/review');
+  await page.getByRole('button', { name: /直近で間違えた\d+問を解き直す/ }).click();
+  await expect(page.getByLabel('直近で間違えた問題')).toBeChecked();
+  await page.getByRole('button', { name: 'この条件ではじめる' }).click();
+  await expect(page.locator('fieldset legend h2')).toHaveText(stem);
 });

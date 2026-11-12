@@ -57,3 +57,8 @@ Playwright で公開形態（ビルド済み dist）を実際に操作し、証�
 ## 5. 対応方針
 
 各指摘への修正内容は docs/G_AI_UX_REDESIGN.md（体験・画面）、docs/G_AI_DATA_MIGRATION.md（データ保護）、docs/G_AI_FLASHCARD_SPEC.md（単語帳仕様）、docs/G_AI_CONTENT_VISUAL_AUDIT.md（教材図表）に記録し、最終判定は docs/G_AI_FINAL_AUDIT.md に集約する。
+
+
+## 追補：2026-11-12 独立再監査の初期所見
+
+着手時の実測：main `a15ef5e`／gh-pages `c91eb54`／公開版 2026.11.13（公開 index.html のアセット `index-D1DagHyQ.js`・`content-CYj6aDmz.js` が main のビルド結果と一致）。指令書に記載の `8d9c11e`・2026.11.5 からは26コミット進んでいた。実ブラウザ操作で見つかった欠陥の一覧・再現手順・修正は `G_AI_FINAL_AUDIT.md` の「独立再監査」節、証跡は `audit-evidence/reaudit-20261112/` を参照。

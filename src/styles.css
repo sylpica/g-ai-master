@@ -223,3 +223,39 @@ ul{padding-left:1.2rem}
 .lesson-fig img{width:100%;height:auto;display:block;border:1px solid var(--line);border-radius:12px}
 .lesson-fig-ph{border:1px dashed var(--line);border-radius:12px;padding:28px 12px;text-align:center;color:var(--muted);font-size:.85rem}
 .lesson-fig figcaption{margin-top:6px;font-size:.85rem;color:var(--muted);text-align:center}
+
+/* ===== 2026.11.14 再監査で修正 ===== */
+/* ホーム：主要操作を一画面に収める。「次にやること」は1行＋ボタン、学習の流れは2列の小さなタイル */
+.home .card.next{display:flex;align-items:center;gap:12px;padding:12px 14px}
+.home .card.next>div{flex:1 1 auto;min-width:0}
+.home .card.next h2{margin:0;font-size:1.02rem;line-height:1.4}
+.home .card.next p{margin:2px 0 0;font-size:.86rem;color:var(--muted)}
+.home .card.next button{flex:0 0 auto}
+.home .flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin:0 0 12px}
+.home .flow li{min-width:0}
+.home .flow button{display:grid;grid-template-columns:auto 1fr;column-gap:8px;align-items:center;min-height:52px;padding:.4rem .6rem;background:var(--card)}
+.home .flow button::before{grid-row:1 / span 2;margin:0}
+.home .flow button b{font-size:.98rem;line-height:1.3}
+.home .flow button span{font-size:.8rem;line-height:1.3}
+.home .today{margin-top:10px}
+.home .today p{display:flex;justify-content:space-between;gap:8px;margin:0 0 6px;font-size:.9rem}
+.home .today p span{color:var(--muted)}
+/* 教材：要点・解説・詳細をタブで分け、1画面あたりの読む量を減らす */
+.lesson-tabs{width:100%;display:grid;grid-template-columns:repeat(3,1fr)}
+.lesson-tabs button{min-height:40px}
+.keypoints>ul:first-child{margin-top:0}
+.lesson-actions details{margin-top:6px}
+.lesson-actions summary{min-height:40px;display:flex;align-items:center;cursor:pointer}
+/* 押しやすさ：保存ボタンとチェックボックス */
+.bm{min-height:40px;min-width:40px}
+input[type=checkbox]{width:20px;height:20px;vertical-align:-4px;accent-color:var(--accent)}
+.controls label:has(input[type=checkbox]){display:inline-flex;align-items:center;gap:6px;min-height:40px}
+.seg.tabs button{min-height:40px}
+@media (max-width:640px){
+  /* 上部バー：モード切替を横幅いっぱいの3等分にして見切れをなくす。アプリ名は幅に余裕があるときだけ表示する */
+  .top-in{gap:6px}
+  .top-in .seg{flex:1 1 auto;display:grid;grid-template-columns:auto auto auto;justify-content:stretch}
+  .top-in .seg button{min-height:36px;padding:3px 4px;font-size:clamp(11px,3.3vw,13px);min-width:0}
+  nav.main button{white-space:nowrap;font-size:clamp(10.5px,3vw,12.8px);padding:2px 0}
+}
+@media (max-width:479px){ .logo{display:none} }

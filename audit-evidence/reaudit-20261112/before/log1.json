@@ -1,0 +1,789 @@
+{
+ "findings": [],
+ "log": [
+  {
+   "t": "2026-11-11T21:54:32.391Z",
+   "ev": "nav",
+   "mode": "g",
+   "labels": [
+    "ホーム",
+    "教材",
+    "単語帳",
+    "演習",
+    "模試",
+    "復習",
+    "分析",
+    "設定"
+   ]
+  },
+  {
+   "t": "2026-11-11T21:54:32.580Z",
+   "ev": "layout",
+   "mode": "g",
+   "label": "ホーム",
+   "url": "#/",
+   "h1": "G検定取得 ダッシュボード",
+   "scrollH": 1507,
+   "vh": 812,
+   "screens": 1.86,
+   "overflowX": 1,
+   "clipped": [],
+   "offscreen": [],
+   "small": [
+    "BUTTON:71x28:G検定取得",
+    "BUTTON:113x28:生成AIパスポート",
+    "BUTTON:49x28:AI教養"
+   ],
+   "smallN": 3,
+   "navRect": [
+    0,
+    757,
+    375,
+    55
+   ],
+   "chars": 505,
+   "fontMin": 14.08
+  },
+  {
+   "t": "2026-11-11T21:54:32.794Z",
+   "ev": "layout",
+   "mode": "g",
+   "label": "教材",
+   "url": "#/lessons",
+   "h1": "G検定 教材",
+   "scrollH": 2760,
+   "vh": 812,
+   "screens": 3.4,
+   "overflowX": 1,
+   "clipped": [],
+   "offscreen": [],
+   "small": [
+    "BUTTON:71x28:G検定取得",
+    "BUTTON:113x28:生成AIパスポート",
+    "BUTTON:49x28:AI教養",
+    "INPUT:13x13:checkbox"
+   ],
+   "smallN": 4,
+   "navRect": [
+    0,
+    757,
+    375,
+    55
+   ],
+   "chars": 1512,
+   "fontMin": 12.8
+  },
+  {
+   "t": "2026-11-11T21:54:33.040Z",
+   "ev": "layout",
+   "mode": "g",
+   "label": "単語帳",
+   "url": "#/cards",
+   "h1": "単語帳（G検定）",
+   "scrollH": 880,
+   "vh": 812,
+   "screens": 1.08,
+   "overflowX": 1,
+   "clipped": [],
+   "offscreen": [],
+   "small": [
+    "BUTTON:71x28:G検定取得",
+    "BUTTON:113x28:生成AIパスポート",
+    "BUTTON:49x28:AI教養",
+    "BUTTON:103x36:用語 → 意味",
+    "BUTTON:103x36:意味 → 用語",
+    "INPUT:13x13:checkbox"
+   ],
+   "smallN": 6,
+   "navRect": [
+    0,
+    757,
+    375,
+    55
+   ],
+   "chars": 294,
+   "fontMin": 13.76
+  },
+  {
+   "t": "2026-11-11T21:54:33.260Z",
+   "ev": "layout",
+   "mode": "g",
+   "label": "演習",
+   "url": "#/practice",
+   "h1": "演習",
+   "scrollH": 826,
+   "vh": 812,
+   "screens": 1.02,
+   "overflowX": 1,
+   "clipped": [],
+   "offscreen": [],
+   "small": [
+    "BUTTON:71x28:G検定取得",
+    "BUTTON:113x28:生成AIパスポート",
+    "BUTTON:49x28:AI教養",
+    "INPUT:13x13:checkbox"
+   ],
+   "smallN": 8,
+   "navRect": [
+    0,
+    757,
+    375,
+    55
+   ],
+   "chars": 388,
+   "fontMin": 13.76
+  },
+  {
+   "t": "2026-11-11T21:54:33.506Z",
+   "ev": "layout",
+   "mode": "g",
+   "label": "模試",
+   "url": "#/exam",
+   "h1": "模擬試験",
+   "scrollH": 1008,
+   "vh": 812,
+   "screens": 1.24,
+   "overflowX": 1,
+   "clipped": [],
+   "offscreen": [],
+   "small": [
+    "BUTTON:71x28:G検定取得",
+    "BUTTON:113x28:生成AIパスポート",
+    "BUTTON:49x28:AI教養"
+   ],
+   "smallN": 3,
+   "navRect": [
+    0,
+    757,
+    375,
+    55
+   ],
+   "chars": 462,
+   "fontMin": 13.76
+  },
+  {
+   "t": "2026-11-11T21:54:33.725Z",
+   "ev": "layout",
+   "mode": "g",
+   "label": "復習",
+   "url": "#/review",
+   "h1": "今日の復習",
+   "scrollH": 812,
+   "vh": 812,
+   "screens": 1,
+   "overflowX": 1,
+   "clipped": [],
+   "offscreen": [],
+   "small": [
+    "BUTTON:71x28:G検定取得",
+    "BUTTON:113x28:生成AIパスポート",
+    "BUTTON:49x28:AI教養"
+   ],
+   "smallN": 3,
+   "navRect": [
+    0,
+    757,
+    375,
+    55
+   ],
+   "chars": 150,
+   "fontMin": 14.4
+  },
+  {
+   "t": "2026-11-11T21:54:33.941Z",
+   "ev": "layout",
+   "mode": "g",
+   "label": "分析",
+   "url": "#/analysis",
+   "h1": "学習分析（G検定）",
+   "scrollH": 1872,
+   "vh": 812,
+   "screens": 2.31,
+   "overflowX": 1,
+   "clipped": [],
+   "offscreen": [],
+   "small": [
+    "BUTTON:71x28:G検定取得",
+    "BUTTON:113x28:生成AIパスポート",
+    "BUTTON:49x28:AI教養"
+   ],
+   "smallN": 3,
+   "navRect": [
+    0,
+    757,
+    375,
+    55
+   ],
+   "chars": 630,
+   "fontMin": 14.4
+  },
+  {
+   "t": "2026-11-11T21:54:34.159Z",
+   "ev": "layout",
+   "mode": "g",
+   "label": "設定",
+   "url": "#/settings",
+   "h1": "設定・更新",
+   "scrollH": 1423,
+   "vh": 812,
+   "screens": 1.75,
+   "overflowX": 1,
+   "clipped": [
+    "INPUT:"
+   ],
+   "offscreen": [],
+   "small": [
+    "BUTTON:71x28:G検定取得",
+    "BUTTON:113x28:生成AIパスポート",
+    "BUTTON:49x28:AI教養",
+    "INPUT:13x13:checkbox"
+   ],
+   "smallN": 4,
+   "navRect": [
+    0,
+    757,
+    375,
+    55
+   ],
+   "chars": 581,
+   "fontMin": 13.76
+  },
+  {
+   "t": "2026-11-11T21:54:34.395Z",
+   "ev": "nav",
+   "mode": "passport",
+   "labels": [
+    "ホーム",
+    "教材",
+    "単語帳",
+    "演習",
+    "模試",
+    "復習",
+    "分析",
+    "設定"
+   ]
+  },
+  {
+   "t": "2026-11-11T21:54:34.592Z",
+   "ev": "layout",
+   "mode": "passport",
+   "label": "ホーム",
+   "url": "#/",
+   "h1": "生成AIパスポート ダッシュボード",
+   "scrollH": 1533,
+   "vh": 812,
+   "screens": 1.89,
+   "overflowX": 1,
+   "clipped": [],
+   "offscreen": [],
+   "small": [
+    "BUTTON:71x28:G検定取得",
+    "BUTTON:113x28:生成AIパスポート",
+    "BUTTON:49x28:AI教養"
+   ],
+   "smallN": 3,
+   "navRect": [
+    0,
+    757,
+    375,
+    55
+   ],
+   "chars": 515,
+   "fontMin": 14.08
+  },
+  {
+   "t": "2026-11-11T21:54:34.806Z",
+   "ev": "layout",
+   "mode": "passport",
+   "label": "教材",
+   "url": "#/lessons",
+   "h1": "生成AIパスポート 教材",
+   "scrollH": 2632,
+   "vh": 812,
+   "screens": 3.24,
+   "overflowX": 1,
+   "clipped": [],
+   "offscreen": [],
+   "small": [
+    "BUTTON:71x28:G検定取得",
+    "BUTTON:113x28:生成AIパスポート",
+    "BUTTON:49x28:AI教養",
+    "INPUT:13x13:checkbox"
+   ],
+   "smallN": 4,
+   "navRect": [
+    0,
+    757,
+    375,
+    55
+   ],
+   "chars": 1882,
+   "fontMin": 12.8
+  },
+  {
+   "t": "2026-11-11T21:54:35.058Z",
+   "ev": "layout",
+   "mode": "passport",
+   "label": "単語帳",
+   "url": "#/cards",
+   "h1": "単語帳（生成AIパスポート）",
+   "scrollH": 880,
+   "vh": 812,
+   "screens": 1.08,
+   "overflowX": 1,
+   "clipped": [],
+   "offscreen": [],
+   "small": [
+    "BUTTON:71x28:G検定取得",
+    "BUTTON:113x28:生成AIパスポート",
+    "BUTTON:49x28:AI教養",
+    "BUTTON:103x36:用語 → 意味",
+    "BUTTON:103x36:意味 → 用語",
+    "INPUT:13x13:checkbox"
+   ],
+   "smallN": 6,
+   "navRect": [
+    0,
+    757,
+    375,
+    55
+   ],
+   "chars": 298,
+   "fontMin": 13.76
+  },
+  {
+   "t": "2026-11-11T21:54:35.293Z",
+   "ev": "layout",
+   "mode": "passport",
+   "label": "演習",
+   "url": "#/practice",
+   "h1": "演習",
+   "scrollH": 839,
+   "vh": 812,
+   "screens": 1.03,
+   "overflowX": 1,
+   "clipped": [],
+   "offscreen": [],
+   "small": [
+    "BUTTON:71x28:G検定取得",
+    "BUTTON:113x28:生成AIパスポート",
+    "BUTTON:49x28:AI教養",
+    "INPUT:13x13:checkbox"
+   ],
+   "smallN": 8,
+   "navRect": [
+    0,
+    757,
+    375,
+    55
+   ],
+   "chars": 327,
+   "fontMin": 13.76
+  },
+  {
+   "t": "2026-11-11T21:54:35.524Z",
+   "ev": "layout",
+   "mode": "passport",
+   "label": "模試",
+   "url": "#/exam",
+   "h1": "模擬試験",
+   "scrollH": 1021,
+   "vh": 812,
+   "screens": 1.26,
+   "overflowX": 1,
+   "clipped": [],
+   "offscreen": [],
+   "small": [
+    "BUTTON:71x28:G検定取得",
+    "BUTTON:113x28:生成AIパスポート",
+    "BUTTON:49x28:AI教養"
+   ],
+   "smallN": 3,
+   "navRect": [
+    0,
+    757,
+    375,
+    55
+   ],
+   "chars": 373,
+   "fontMin": 13.76
+  },
+  {
+   "t": "2026-11-11T21:54:35.740Z",
+   "ev": "layout",
+   "mode": "passport",
+   "label": "復習",
+   "url": "#/review",
+   "h1": "今日の復習",
+   "scrollH": 812,
+   "vh": 812,
+   "screens": 1,
+   "overflowX": 1,
+   "clipped": [],
+   "offscreen": [],
+   "small": [
+    "BUTTON:71x28:G検定取得",
+    "BUTTON:113x28:生成AIパスポート",
+    "BUTTON:49x28:AI教養"
+   ],
+   "smallN": 3,
+   "navRect": [
+    0,
+    757,
+    375,
+    55
+   ],
+   "chars": 150,
+   "fontMin": 14.4
+  },
+  {
+   "t": "2026-11-11T21:54:35.958Z",
+   "ev": "layout",
+   "mode": "passport",
+   "label": "分析",
+   "url": "#/analysis",
+   "h1": "学習分析（生成AIパスポート）",
+   "scrollH": 1872,
+   "vh": 812,
+   "screens": 2.31,
+   "overflowX": 1,
+   "clipped": [],
+   "offscreen": [],
+   "small": [
+    "BUTTON:71x28:G検定取得",
+    "BUTTON:113x28:生成AIパスポート",
+    "BUTTON:49x28:AI教養"
+   ],
+   "smallN": 3,
+   "navRect": [
+    0,
+    757,
+    375,
+    55
+   ],
+   "chars": 635,
+   "fontMin": 14.4
+  },
+  {
+   "t": "2026-11-11T21:54:36.174Z",
+   "ev": "layout",
+   "mode": "passport",
+   "label": "設定",
+   "url": "#/settings",
+   "h1": "設定・更新",
+   "scrollH": 1423,
+   "vh": 812,
+   "screens": 1.75,
+   "overflowX": 1,
+   "clipped": [
+    "INPUT:"
+   ],
+   "offscreen": [],
+   "small": [
+    "BUTTON:71x28:G検定取得",
+    "BUTTON:113x28:生成AIパスポート",
+    "BUTTON:49x28:AI教養",
+    "INPUT:13x13:checkbox"
+   ],
+   "smallN": 4,
+   "navRect": [
+    0,
+    757,
+    375,
+    55
+   ],
+   "chars": 581,
+   "fontMin": 13.76
+  },
+  {
+   "t": "2026-11-11T21:54:36.393Z",
+   "ev": "nav",
+   "mode": "literacy",
+   "labels": [
+    "ホーム",
+    "教材",
+    "単語帳",
+    "演習",
+    "復習",
+    "分析",
+    "設定"
+   ]
+  },
+  {
+   "t": "2026-11-11T21:54:36.591Z",
+   "ev": "layout",
+   "mode": "literacy",
+   "label": "ホーム",
+   "url": "#/",
+   "h1": "AI教養 ダッシュボード",
+   "scrollH": 1211,
+   "vh": 812,
+   "screens": 1.49,
+   "overflowX": 1,
+   "clipped": [],
+   "offscreen": [],
+   "small": [
+    "BUTTON:71x28:G検定取得",
+    "BUTTON:113x28:生成AIパスポート",
+    "BUTTON:49x28:AI教養"
+   ],
+   "smallN": 3,
+   "navRect": [
+    0,
+    757,
+    375,
+    55
+   ],
+   "chars": 328,
+   "fontMin": 14.08
+  },
+  {
+   "t": "2026-11-11T21:54:36.789Z",
+   "ev": "layout",
+   "mode": "literacy",
+   "label": "教材",
+   "url": "#/literacy",
+   "h1": "AI教養",
+   "scrollH": 1531,
+   "vh": 812,
+   "screens": 1.89,
+   "overflowX": 1,
+   "clipped": [],
+   "offscreen": [],
+   "small": [
+    "BUTTON:71x28:G検定取得",
+    "BUTTON:113x28:生成AIパスポート",
+    "BUTTON:49x28:AI教養",
+    "BUTTON:53x36:教材",
+    "BUTTON:82x36:実践演習",
+    "BUTTON:97x36:モデル比較",
+    "BUTTON:83x36:ニュース",
+    "INPUT:13x13:checkbox"
+   ],
+   "smallN": 8,
+   "navRect": [
+    0,
+    757,
+    375,
+    55
+   ],
+   "chars": 801,
+   "fontMin": 12.8
+  },
+  {
+   "t": "2026-11-11T21:54:37.009Z",
+   "ev": "layout",
+   "mode": "literacy",
+   "label": "単語帳",
+   "url": "#/cards",
+   "h1": "単語帳（AI教養）",
+   "scrollH": 880,
+   "vh": 812,
+   "screens": 1.08,
+   "overflowX": 1,
+   "clipped": [],
+   "offscreen": [],
+   "small": [
+    "BUTTON:71x28:G検定取得",
+    "BUTTON:113x28:生成AIパスポート",
+    "BUTTON:49x28:AI教養",
+    "BUTTON:103x36:用語 → 意味",
+    "BUTTON:103x36:意味 → 用語",
+    "INPUT:13x13:checkbox"
+   ],
+   "smallN": 6,
+   "navRect": [
+    0,
+    757,
+    375,
+    55
+   ],
+   "chars": 293,
+   "fontMin": 13.76
+  },
+  {
+   "t": "2026-11-11T21:54:37.242Z",
+   "ev": "layout",
+   "mode": "literacy",
+   "label": "演習",
+   "url": "#/practice",
+   "h1": "演習",
+   "scrollH": 826,
+   "vh": 812,
+   "screens": 1.02,
+   "overflowX": 1,
+   "clipped": [],
+   "offscreen": [],
+   "small": [
+    "BUTTON:71x28:G検定取得",
+    "BUTTON:113x28:生成AIパスポート",
+    "BUTTON:49x28:AI教養",
+    "INPUT:13x13:checkbox"
+   ],
+   "smallN": 8,
+   "navRect": [
+    0,
+    757,
+    375,
+    55
+   ],
+   "chars": 337,
+   "fontMin": 13.76
+  },
+  {
+   "t": "2026-11-11T21:54:37.474Z",
+   "ev": "layout",
+   "mode": "literacy",
+   "label": "復習",
+   "url": "#/review",
+   "h1": "今日の復習",
+   "scrollH": 812,
+   "vh": 812,
+   "screens": 1,
+   "overflowX": 1,
+   "clipped": [],
+   "offscreen": [],
+   "small": [
+    "BUTTON:71x28:G検定取得",
+    "BUTTON:113x28:生成AIパスポート",
+    "BUTTON:49x28:AI教養"
+   ],
+   "smallN": 3,
+   "navRect": [
+    0,
+    757,
+    375,
+    55
+   ],
+   "chars": 150,
+   "fontMin": 14.4
+  },
+  {
+   "t": "2026-11-11T21:54:37.690Z",
+   "ev": "layout",
+   "mode": "literacy",
+   "label": "分析",
+   "url": "#/analysis",
+   "h1": "学習分析（AI教養）",
+   "scrollH": 1330,
+   "vh": 812,
+   "screens": 1.64,
+   "overflowX": 1,
+   "clipped": [],
+   "offscreen": [],
+   "small": [
+    "BUTTON:71x28:G検定取得",
+    "BUTTON:113x28:生成AIパスポート",
+    "BUTTON:49x28:AI教養"
+   ],
+   "smallN": 3,
+   "navRect": [
+    0,
+    757,
+    375,
+    55
+   ],
+   "chars": 399,
+   "fontMin": 14.4
+  },
+  {
+   "t": "2026-11-11T21:54:37.914Z",
+   "ev": "layout",
+   "mode": "literacy",
+   "label": "設定",
+   "url": "#/settings",
+   "h1": "設定・更新",
+   "scrollH": 1423,
+   "vh": 812,
+   "screens": 1.75,
+   "overflowX": 1,
+   "clipped": [
+    "INPUT:"
+   ],
+   "offscreen": [],
+   "small": [
+    "BUTTON:71x28:G検定取得",
+    "BUTTON:113x28:生成AIパスポート",
+    "BUTTON:49x28:AI教養",
+    "INPUT:13x13:checkbox"
+   ],
+   "smallN": 4,
+   "navRect": [
+    0,
+    757,
+    375,
+    55
+   ],
+   "chars": 581,
+   "fontMin": 13.76
+  },
+  {
+   "t": "2026-11-11T21:54:38.812Z",
+   "ev": "layout",
+   "label": "lesson",
+   "url": "#/lesson/les-g01",
+   "h1": "人工知能とは：定義と古典的問題",
+   "scrollH": 4467,
+   "vh": 812,
+   "screens": 5.5,
+   "overflowX": 1,
+   "clipped": [
+    "THEAD:問題・概念何を問うか要点"
+   ],
+   "offscreen": [],
+   "small": [
+    "BUTTON:71x28:G検定取得",
+    "BUTTON:113x28:生成AIパスポート",
+    "BUTTON:49x28:AI教養",
+    "BUTTON:147x27:チューリングテスト",
+    "BUTTON:229x27:シンボルグラウンディング問題",
+    "A:272x20:JDLA G検定 公式ページ（シ"
+   ],
+   "smallN": 7,
+   "navRect": [
+    0,
+    757,
+    375,
+    55
+   ],
+   "chars": 1566,
+   "fontMin": 13.6
+  },
+  {
+   "t": "2026-11-11T21:54:40.039Z",
+   "ev": "practice-session",
+   "n": 600,
+   "first": [
+    "q-g09-19",
+    "q-g03-112",
+    "q-g03-103",
+    "q-g10-20",
+    "q-g01-130"
+   ],
+   "shuffleQ": true,
+   "shuffleC": true
+  },
+  {
+   "t": "2026-11-11T21:54:40.660Z",
+   "ev": "next-btn-box",
+   "nb": {
+    "x": 251.625,
+    "y": 628.921875,
+    "width": 94.375,
+    "height": 44.390625
+   }
+  },
+  {
+   "t": "2026-11-11T21:54:45.081Z",
+   "ev": "back",
+   "hash": ""
+  },
+  {
+   "t": "2026-11-11T21:54:52.403Z",
+   "ev": "shuffle",
+   "distinctFirst": 38,
+   "of": 40,
+   "bad": 0
+  }
+ ]
+}
