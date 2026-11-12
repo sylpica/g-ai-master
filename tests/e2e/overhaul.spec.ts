@@ -123,6 +123,46 @@ test('単語帳：カードを左右にスワイプすると前後のカード�
   await expect(page.locator('.meta')).toContainText('1／');
 });
 
+test('単語帳：スワイプは未回答扱いで記録を書かず、既存の評価も上書きしない（FPルール照合）', async ({ page }) => {
+  await page.getByLabel('主要メニュー').getByRole('button', { name: '単語帳' }).click();
+  await page.getByLabel('シャッフル').uncheck();
+  await page.getByRole('button', { name: 'この条件ではじめる' }).click();
+  const face = page.locator('.flash-face');
+  await expect(face).toBeVisible();
+  const readReview = () => page.evaluate(() => JSON.parse(localStorage.getItem('g-ai-master:state:v1')!).cardReview ?? {});
+  const swipe = (dx: number) => face.evaluate((el, d) => {
+    const r = el.getBoundingClientRect();
+    const y = r.top + r.height / 2;
+    el.dispatchEvent(new PointerEvent('pointerdown', { clientX: r.left + r.width / 2, clientY: y, bubbles: true }));
+    el.dispatchEvent(new PointerEvent('pointerup', { clientX: r.left + r.width / 2 + d, clientY: y, bubbles: true }));
+  }, dx);
+  // ルール3：表面には行き先・状態ラベル（覚えた等）が出ていない
+  await expect(face).not.toContainText(/覚えた|覚えていない/);
+  // ルール1：スワイプで移動しても復習記録は書かれない
+  await swipe(-120);
+  await expect(page.locator('.meta')).toContainText('2／');
+  await swipe(120);
+  await expect(page.locator('.meta')).toContainText('1／');
+  expect(Object.keys(await readReview())).toHaveLength(0);
+  // 1枚目をボタンで評価すると記録が1件書かれ、自動で次へ進む
+  await face.click();
+  await page.getByRole('button', { name: '覚えた', exact: true }).click();
+  await expect(page.locator('.meta')).toContainText('2／');
+  const afterGrade = await readReview();
+  const gradedIds = Object.keys(afterGrade);
+  expect(gradedIds).toHaveLength(1);
+  expect(afterGrade[gradedIds[0]].lastGrade).toBe('known');
+  // ルール2：評価済みカードへスワイプで戻っても、評価は上書き・消去されない
+  await swipe(120);
+  await expect(page.locator('.meta')).toContainText('1／');
+  await swipe(-120);
+  await expect(page.locator('.meta')).toContainText('2／');
+  const afterSwipe = await readReview();
+  expect(Object.keys(afterSwipe)).toHaveLength(1);
+  expect(afterSwipe[gradedIds[0]].lastGrade).toBe('known');
+  expect(afterSwipe[gradedIds[0]].lastAt).toBe(afterGrade[gradedIds[0]].lastAt);
+});
+
 test('演習：選んだ瞬間に答えと関連図表が表示される（即時フィードバック）', async ({ page }) => {
   await page.getByLabel('主要メニュー').getByRole('button', { name: '演習' }).click();
   await page.getByRole('button', { name: 'この条件ではじめる' }).click();
