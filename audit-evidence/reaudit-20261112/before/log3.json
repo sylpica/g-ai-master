@@ -1,0 +1,18 @@
+{
+ "findings": [
+  {
+   "id": "EXAM-REC",
+   "sev": "Critical",
+   "text": "模試提出後の回答記録数が回答数と不一致",
+   "got": 0,
+   "want": 6
+  },
+  {
+   "id": "EXAM-TIMEOUT-REC",
+   "sev": "High",
+   "text": "時間切れ提出の回答記録数が不正",
+   "n": 0
+  }
+ ],
+ "log": []
+}

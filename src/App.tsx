@@ -171,10 +171,12 @@ export default function App() {
   const setMode = (m: Mode) => { upd((s) => { s.mode = m; return s; }); };
   const openLesson = (id: string) => { const l = publishedLessons.find((x) => x.id === id); if (l && l.mode !== state.mode) setMode(l.mode); nav({ name: 'lesson', id }); };
   const openCard = (id: string) => { const c = publishedFlashcards.find((x) => x.id === id); if (c && c.mode !== state.mode) setMode(c.mode); nav({ name: 'card', id }); };
-  const practiceWith = (opts: { field?: string; text?: string }) => {
+  const practiceWith = (opts: { field?: string; text?: string; weak?: boolean }) => {
     try {
       if (opts.field) sessionStorage.setItem('g-ai:practiceField', opts.field); else sessionStorage.removeItem('g-ai:practiceField');
       if (opts.text) sessionStorage.setItem('g-ai:practiceText', opts.text); else sessionStorage.removeItem('g-ai:practiceText');
+      if (opts.weak) sessionStorage.setItem('g-ai:practiceWeak', '1'); else sessionStorage.removeItem('g-ai:practiceWeak');
+      sessionStorage.removeItem(`g-ai:practice-session:${state.mode}:practice`); // 条件を指定して開くときは、前のセットではなく条件選択から始める
     } catch { /* 保存できなくても演習自体は開ける */ }
     nav({ name: 'practice' });
   };
@@ -254,7 +256,7 @@ export default function App() {
           <PracticeView key={`review-${state.mode}`} mode={state.mode} reviewMode
             questions={modeQuestions.filter((x) => due.some((d) => d.questionId === x.id))}
             answers={modeAnswers} bookmarks={state.bookmarks} onBookmark={(id) => toggleBookmark(`q:${id}`)}
-            onAnswer={(q, sel, sec) => recordAnswer(q, sel, sec, 'review')}
+            onAnswer={(q, sel, sec) => recordAnswer(q, sel, sec, 'review')} onPracticeWrong={() => practiceWith({ weak: true })}
             prefs={state.practicePrefs} onPrefs={(p) => upd((s) => { s.practicePrefs = p; return s; })}
             onOpenLesson={openLesson} onOpenCard={openCard} />
         )}
@@ -266,7 +268,7 @@ export default function App() {
             onOpenLesson={openLesson} onPracticeQuestion={(qid) => practiceWith({ text: qid })} />
         )}
         {route.name === 'exam' && (examMode
-          ? <ExamView state={state} mode={state.mode} questions={modeQuestions} syllabus={syllabus} upd={upd} recordAnswer={recordAnswer} onOpenLesson={openLesson} />
+          ? <ExamView state={state} mode={state.mode} questions={modeQuestions} syllabus={syllabus} upd={upd} onOpenLesson={openLesson} />
           : <p className="card">模擬試験は試験対策モード（G検定／生成AIパスポート）の機能です。</p>)}
         {route.name === 'analysis' && (
           <AnalysisView mode={state.mode} examMode={examMode} ready={ready} stats={stats} exams={state.exams} questions={questions}
@@ -307,26 +309,26 @@ function HomeView(props: {
   const todays = props.answers.filter((a) => todayStr(new Date(a.at)) === today);
   const min = Math.round(todays.reduce((acc, a) => acc + (a.seconds || 0), 0) / 60);
   return (
-    <section>
+    <section className="home">
       <h1>{props.mode === 'g' ? 'G検定取得' : MODE_LABEL[props.mode]} ダッシュボード</h1>
-      <div className="card next"><h2>次にやること：{next.title}</h2><p>{next.body}</p><button className="primary touch" onClick={() => nav(next.route)}>{next.label}</button></div>
+      <div className="card next"><div><h2>{next.title}</h2><p>{next.body}</p></div><button className="primary touch" onClick={() => nav(next.route)}>{next.label}</button></div>
+      <ol className="flow" aria-label="学習の流れ">
+        <li><button onClick={() => nav(props.examMode ? { name: 'lessons' } : { name: 'literacy' })}><b>教材</b><span>{props.lessonsDone}／{props.lessonsTotal}件</span></button></li>
+        <li><button onClick={() => nav({ name: 'cards' })}><b>単語帳</b><span>期限 {props.cardDueCount}枚</span></button></li>
+        <li><button onClick={() => nav({ name: 'practice' })}><b>演習</b><span>回答 {props.answersCount}問</span></button></li>
+        <li><button onClick={() => nav({ name: 'review' })}><b>復習</b><span>期限 {props.dueCount}問</span></button></li>
+        {props.examMode
+          ? <li><button onClick={() => nav({ name: 'exam' })}><b>模擬試験</b><span>提出 {props.examsSubmitted}回</span></button></li>
+          : <li><button onClick={() => nav({ name: 'literacy' })}><b>実践演習</b><span>{props.exercisesDone}／{props.exercisesTotal}件</span></button></li>}
+      </ol>
       <div className="card">
-        <ol className="flow" aria-label="学習の流れ">
-          <li><button onClick={() => nav(props.examMode ? { name: 'lessons' } : { name: 'literacy' })}><b>教材</b><span>学習済み {props.lessonsDone}／{props.lessonsTotal}件</span></button></li>
-          <li><button onClick={() => nav({ name: 'cards' })}><b>単語帳</b><span>期限の来たカード {props.cardDueCount}枚</span></button></li>
-          <li><button onClick={() => nav({ name: 'practice' })}><b>演習</b><span>累計 {props.answersCount}問に回答</span></button></li>
-          <li><button onClick={() => nav({ name: 'review' })}><b>復習</b><span>期限の来た問題 {props.dueCount}問</span></button></li>
-          {props.examMode
-            ? <li><button onClick={() => nav({ name: 'exam' })}><b>模擬試験</b><span>提出済み {props.examsSubmitted}回</span></button></li>
-            : <li><button onClick={() => nav({ name: 'literacy' })}><b>実践演習</b><span>自己評価 {props.exercisesDone}／{props.exercisesTotal}件</span></button></li>}
-        </ol>
-        <div className="kpi" style={{ marginTop: 12 }}>
+        <div className="kpi">
           <div>初見正答率<b>{pct(ready.firstSeenAccuracy)}</b></div>
           <div>全体正答率<b>{pct(ready.overallAccuracy)}</b></div>
           <div>教材の網羅<b>{pct(ready.coverage)}</b></div>
         </div>
-        <div style={{ marginTop: 12 }}>
-          <p style={{ margin: '0 0 6px' }}>今日の学習：{todays.length}問／約{min}分（回答時間からの概算・目標 {props.dailyGoalMin}分）</p>
+        <div className="today">
+          <p>今日 {todays.length}問・約{min}分<span>目標 {props.dailyGoalMin}分</span></p>
           <div className="bar" role="progressbar" aria-valuenow={Math.min(100, Math.round((min / Math.max(props.dailyGoalMin, 1)) * 100))} aria-valuemin={0} aria-valuemax={100} aria-label="今日の学習目標の進捗">
             <i style={{ width: `${Math.min(100, (min / Math.max(props.dailyGoalMin, 1)) * 100)}%` }} /></div>
         </div>
@@ -434,48 +436,62 @@ function LessonView({ lesson, state, onDone, onBack, onBookmark, onOpenCard, onP
   const termsOf = (chapter: string) => publishedFlashcards.filter((c) => c.syllabusId === chapter).map((c) => ({ term: c.term, cardId: c.id, definition: c.definition }));
   const terms = termsOf(lesson.syllabusId);
   const relatedQuestions = publishedQuestions.filter((q) => q.syllabusId === lesson.syllabusId).length;
+  const [tab, setTab] = useState<'key' | 'basic' | 'detail'>('key');
+  useEffect(() => { setTab('key'); }, [lesson.id]);
   return (
     <article>
       <p className="controls"><button onClick={onBack}>← 教材一覧へ</button>
         <button aria-pressed={bookmarked} onClick={onBookmark}>{bookmarked ? '★ ブックマーク済み' : '☆ ブックマーク'}</button>
         <button onClick={onSyllabus}>シラバスでの位置</button></p>
       <h1>{lesson.title}</h1>
-      <div className="card keypoints">
-        <h2>この教材で覚えること</h2>
-        <ul>{lesson.keyPoints.map((k) => <li key={k}>{k}</li>)}</ul>
-        <LessonVisuals ids={LESSON_VISUAL_IDS[lesson.id] ?? lesson.visualIds} />
-      </div>
-      <div className="card">
-        <h2>基礎解説</h2>
-        {lesson.basic.map((p, i) => (
-          <React.Fragment key={i}>
-            <p><TermText text={p} terms={terms} onOpenCard={onOpenCard} /></p>
-            {ILLUSTRATIONS[lesson.id]?.after === i && <LessonIllustration lessonId={lesson.id} />}
-          </React.Fragment>
+      <div role="tablist" aria-label="教材の表示" className="seg tabs lesson-tabs">
+        {([['key', '要点と図'], ['basic', '解説'], ['detail', '詳細・出典']] as const).map(([k, label]) => (
+          <button key={k} role="tab" id={`lesson-tab-${k}`} aria-selected={tab === k} aria-controls="lesson-pane" className={tab === k ? 'primary' : ''} onClick={() => setTab(k)}>{label}</button>
         ))}
-        <h3>よくある誤解</h3><ul>{lesson.pitfalls.map((k) => <li key={k}>{k}</li>)}</ul>
       </div>
-      <div className="card">
-        <details>
-          <summary>詳細解説を開く</summary>
-          {lesson.detail.map((p, i) => (
-            <React.Fragment key={i}>
-              <p><TermText text={p} terms={terms} onOpenCard={onOpenCard} /></p>
-              {DETAIL_ILLUSTRATIONS[lesson.id]?.after === i && <LessonIllustration lessonId={lesson.id} variant="detail" />}
-            </React.Fragment>
-          ))}
-          {lesson.advancedNote && <p className="muted">発展内容について：{lesson.advancedNote}</p>}
-        </details>
-        <h3>参考資料</h3><ul>{lesson.sources.map((s) => <li key={s.url}><a href={s.url} target="_blank" rel="noreferrer">{s.title}</a></li>)}</ul>
-        <p className="muted small">教材 v{lesson.version}／最終検証 {lesson.verifiedAt}／再検証目安 {lesson.reviewBy}</p>
+      <div id="lesson-pane" role="tabpanel" aria-labelledby={`lesson-tab-${tab}`}>
+        {tab === 'key' && (
+          <div className="card keypoints">
+            <ul>{lesson.keyPoints.map((k) => <li key={k}>{k}</li>)}</ul>
+            <LessonVisuals ids={LESSON_VISUAL_IDS[lesson.id] ?? lesson.visualIds} />
+          </div>
+        )}
+        {tab === 'basic' && (
+          <div className="card">
+            {lesson.basic.map((p, i) => (
+              <React.Fragment key={i}>
+                <p><TermText text={p} terms={terms} onOpenCard={onOpenCard} /></p>
+                {ILLUSTRATIONS[lesson.id]?.after === i && <LessonIllustration lessonId={lesson.id} />}
+              </React.Fragment>
+            ))}
+            <h3>よくある誤解</h3><ul>{lesson.pitfalls.map((k) => <li key={k}>{k}</li>)}</ul>
+          </div>
+        )}
+        {tab === 'detail' && (
+          <div className="card">
+            {lesson.detail.map((p, i) => (
+              <React.Fragment key={i}>
+                <p><TermText text={p} terms={terms} onOpenCard={onOpenCard} /></p>
+                {DETAIL_ILLUSTRATIONS[lesson.id]?.after === i && <LessonIllustration lessonId={lesson.id} variant="detail" />}
+              </React.Fragment>
+            ))}
+            {lesson.advancedNote && <p className="muted">発展内容について：{lesson.advancedNote}</p>}
+            <h3>参考資料</h3><ul>{lesson.sources.map((s) => <li key={s.url}><a href={s.url} target="_blank" rel="noreferrer">{s.title}</a></li>)}</ul>
+            <p className="muted small">教材 v{lesson.version}／最終検証 {lesson.verifiedAt}／再検証目安 {lesson.reviewBy}</p>
+          </div>
+        )}
+      </div>
+      <div className="card lesson-actions">
         <p className="controls">
+          {tab !== 'detail' && <button className="touch" onClick={() => setTab(tab === 'key' ? 'basic' : 'detail')}>{tab === 'key' ? '解説を読む →' : '詳細を読む →'}</button>}
           <button className="primary touch" disabled={done} onClick={onDone}>{done ? '学習済み' : '学習済みにする'}</button>
           <button className="touch" onClick={() => onPracticeChapter(lesson.syllabusId)}>この章の演習（{relatedQuestions}問）</button>
         </p>
-        {chapterCards.length > 0 && <>
-          <h3>この章の単語カード</h3>
-          <p className="controls">{chapterCards.slice(0, 12).map((c) => <button key={c.id} onClick={() => onOpenCard(c.id)}>{c.term}</button>)}</p>
-        </>}
+        {chapterCards.length > 0 && (
+          <details><summary>この章の単語カード（{chapterCards.length}枚）</summary>
+            <p className="controls">{chapterCards.map((c) => <button key={c.id} onClick={() => onOpenCard(c.id)}>{c.term}</button>)}</p>
+          </details>
+        )}
       </div>
     </article>
   );
@@ -496,7 +512,7 @@ function PracticeView(props: {
   bookmarks: string[]; onBookmark: (id: string) => void;
   onAnswer: (q: Question, sel: number[], sec: number) => boolean;
   prefs: AppState['practicePrefs']; onPrefs: (p: AppState['practicePrefs']) => void;
-  onOpenLesson: (id: string) => void; onOpenCard: (id: string) => void;
+  onOpenLesson: (id: string) => void; onOpenCard: (id: string) => void; onPracticeWrong?: () => void;
 }) {
   const reviewMode = !!props.reviewMode;
   // 復習は開いた時点の期限到来分で固定する（回答で期限が動いても表示中の問題が差し替わらないように）
@@ -507,7 +523,7 @@ function PracticeView(props: {
   const [text, setText] = useState(() => { try { return sessionStorage.getItem('g-ai:practiceText') ?? ''; } catch { return ''; } });
   const [savedOnly, setSavedOnly] = useState(false);
   const [unansweredOnly, setUnansweredOnly] = useState(false);
-  const [weakOnly, setWeakOnly] = useState(false);
+  const [weakOnly, setWeakOnly] = useState(() => { try { return !reviewMode && sessionStorage.getItem('g-ai:practiceWeak') === '1'; } catch { return false; } });
   const [count, setCount] = useState<'all' | 5 | 10 | 20>('all');
   const [shuffleQ, setShuffleQ] = useState(props.prefs.shuffleQuestions);
   const [shuffleC, setShuffleC] = useState(props.prefs.shuffleChoices);
@@ -551,7 +567,16 @@ function PracticeView(props: {
   const endSession = () => setSession(null);
 
   if (livePool.length === 0) {
-    return <section><h1>{reviewMode ? '今日の復習' : '演習'}</h1><p className="card">現在、対象の問題はありません。{reviewMode ? '復習期限の問題がない状態です。' : ''}</p></section>;
+    return (
+      <section><h1>{reviewMode ? '今日の復習' : '演習'}</h1>
+        <div className="card">
+          <p>{reviewMode ? '今日が期限の復習はありません。' : '現在、対象の問題はありません。'}</p>
+          {reviewMode && wrongIds.size > 0 && props.onPracticeWrong && (
+            <button className="primary touch" onClick={props.onPracticeWrong}>直近で間違えた{wrongIds.size}問を解き直す</button>
+          )}
+        </div>
+      </section>
+    );
   }
   if (!session) {
     return (
@@ -588,7 +613,7 @@ function PracticeView(props: {
     return (
       <section><h1>{reviewMode ? '今日の復習' : '演習'}</h1>
         <div className="card"><h2>このセットを終えました</h2>
-          <p>{doneCount}問中 {correctCount}問正解（{doneCount ? Math.round((correctCount / doneCount) * 100) : 0}%）でした。誤答した問題は復習リストに入っています。</p>
+          <p>{doneCount}問中 {correctCount}問正解（{doneCount ? Math.round((correctCount / doneCount) * 100) : 0}%）でした。誤答した問題は翌日の復習に入ります。</p>
           <p className="controls">
             <button className="primary touch" onClick={() => { endSession(); }}>条件を変えてもう一度</button>
             <button className="touch" onClick={() => startSession(true)}>同じ条件で再シャッフル</button>
@@ -709,16 +734,22 @@ function FlashcardsView(props: {
   const chapters = [...new Set(props.cards.map((c) => c.syllabusId))];
   const stats = cardStats(props.cardReview, props.cards.length);
 
-  const start = (ids: string[], fromPos = 0) => {
-    const ordered = shuffleOn ? shuffled(ids, mulberry32(randomSeed())) : ids;
+  const start = (ids: string[], fromPos = 0, focusFirst = false) => {
+    // シャッフル時に特定のカードを指定された場合は、そのカードを先頭に置いて残りを混ぜる
+    const picked = fromPos > 0 || focusFirst ? ids[fromPos] : undefined;
+    const ordered = !shuffleOn ? ids
+      : picked ? [picked, ...shuffled(ids.filter((id) => id !== picked), mulberry32(randomSeed()))]
+        : shuffled(ids, mulberry32(randomSeed()));
     const pos = shuffleOn ? 0 : Math.min(fromPos, Math.max(0, ordered.length - 1));
     setSession({ ids: ordered, pos, flipped: false, direction: props.direction, graded: {}, shuffle: shuffleOn });
   };
   useEffect(() => {
-    if (props.focusCardId && !session) {
-      const idx = pool.findIndex((c) => c.id === props.focusCardId);
-      if (idx >= 0) start(pool.map((c) => c.id), idx);
-    }
+    if (!props.focusCardId) return;
+    // 深いリンク：進行中のセッションに対象があればその位置へ、なければ全件から対象を先頭にして開始する
+    const inSession = session ? session.ids.indexOf(props.focusCardId) : -1;
+    if (session && inSession >= 0) { if (inSession !== session.pos) setSession({ ...session, pos: inSession, flipped: false }); return; }
+    const idx = props.cards.findIndex((c) => c.id === props.focusCardId);
+    if (idx >= 0) start(props.cards.map((c) => c.id), idx, true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.focusCardId]);
 
@@ -751,7 +782,7 @@ function FlashcardsView(props: {
             <ul className="card-list">
               {pool.map((c) => (
                 <li key={c.id}>
-                  <button className="card-row" onClick={() => start(pool.map((x) => x.id), pool.findIndex((x) => x.id === c.id))}>
+                  <button className="card-row" onClick={() => start(pool.map((x) => x.id), pool.findIndex((x) => x.id === c.id), true)}>
                     <b>{c.term}</b><small>{chapterName(c.syllabusId)}{props.cardReview[c.id]?.lastGrade ? `／${GRADE_LABEL[props.cardReview[c.id].lastGrade!]}` : ''}</small>
                   </button>
                   <button className="bm" aria-pressed={props.bookmarks.includes(`card:${c.id}`)} aria-label={`${c.term}をブックマーク`} onClick={() => props.onBookmark(c.id)}>{props.bookmarks.includes(`card:${c.id}`) ? '★' : '☆'}</button>
@@ -847,7 +878,7 @@ function FlashcardsView(props: {
   );
 }
 
-function ExamView({ state, mode, questions, syllabus, upd, recordAnswer, onOpenLesson }: { state: AppState; mode: Mode; questions: Question[]; syllabus: SyllabusNode[]; upd: (fn: (s: AppState) => AppState) => void; recordAnswer: (q: Question, sel: number[], sec: number, context: 'practice' | 'exam' | 'review') => boolean; onOpenLesson: (id: string) => void }) {
+function ExamView({ state, mode, questions, syllabus, upd, onOpenLesson }: { state: AppState; mode: Mode; questions: Question[]; syllabus: SyllabusNode[]; upd: (fn: (s: AppState) => AppState) => void; onOpenLesson: (id: string) => void }) {
   const active = state.exams.find((e) => e.status === 'in-progress' && e.mode === mode);
   const fullCount = mode === 'passport' ? 60 : EXAM_FULL_COUNT; // 生成AIパスポートは60問・60分（IBT）、G検定は145問程度
   const [field, setField] = useState(syllabus[2]?.id ?? syllabus[0]?.id ?? '');
@@ -883,7 +914,16 @@ function ExamView({ state, mode, questions, syllabus, upd, recordAnswer, onOpenL
       e.status = 'submitted';
       e.submittedAt = new Date().toISOString();
       const perQ = Math.max(1, Math.round(effectiveElapsedSec(e, Date.now()) / Math.max(1, Object.keys(e.answers).length)));
-      for (const qq of qs) { const sel = e.answers[qq.id]; if (sel && sel.length > 0) recordAnswer(qq, sel, perQ, 'exam'); }
+      // 回答の記録は同じ更新の中で行う（更新関数の中から別の状態更新を呼ぶと記録が失われるため）
+      const at = e.submittedAt;
+      for (const qq of qs) {
+        const sel = e.answers[qq.id];
+        if (!sel || sel.length === 0) continue;
+        const correct = judge(sel, qq.answer);
+        const firstSeen = !s.answers.some((a) => a.questionId === qq.id);
+        s.answers.push({ questionId: qq.id, selected: sel, correct, at, seconds: perQ, firstSeen, context: 'exam' });
+        s.review[qq.id] = nextReview(s.review[qq.id], qq.id, correct);
+      }
       return s;
     });
     if (!auto) return;

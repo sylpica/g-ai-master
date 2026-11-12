@@ -1,0 +1,10 @@
+{
+ "findings": [],
+ "log": [
+  {
+   "t": "2026-11-12T03:15:45.388Z",
+   "ev": "requestfailed",
+   "url": "http://localhost:4173/"
+  }
+ ]
+}
