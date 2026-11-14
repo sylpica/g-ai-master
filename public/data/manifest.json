@@ -1,7 +1,1 @@
-{
-  "contentVersion": "2026.11.14",
-  "examInfoVerifiedAt": "2026-11-03",
-  "notes": "独立再監査（2026-11-12）の修正：模試の回答が履歴・復習・分析に記録されない欠陥、単語帳の一覧選択と深いリンクが別カードを開く欠陥、375px以下でのモード切替の見切れを修正。ホームを一画面に圧縮し、教材を「要点と図／解説／詳細・出典」のタブに分割。",
-  "publishedAt": "2026-11-12",
-  "syllabusVersion": "G2024#6-"
-}
+{"contentVersion":"2026.11.15","examInfoVerifiedAt":"2026-11-03","notes":"AI教養ニュース5件を追加（G検定2027年第1回の申込開始／Gemini 4 Hydrogen／Claude Managed Agentsセルフホスト版／AlphaGenome 2／Gemini Decisions API）。","publishedAt":"2026-11-14","syllabusVersion":"G2024#6-"}
