@@ -1,3 +1,4 @@
+import { CHATGPT_VISUALS, CHATGPT_VISUAL_IDS } from './chatgpt';
 import type { LessonVisual } from '../types';
 import { G_EXTRA_VISUALS, G_EXTRA_VISUAL_IDS } from './gExtraVisuals';
 import { PASSPORT_VISUALS, PASSPORT_VISUAL_IDS } from './passportVisuals';
@@ -350,7 +351,7 @@ const BASE_VISUAL_IDS: Record<string, string[]> = {
 
 /** 全図表の統合（基礎＋G追加＋パスポート＋増強分） */
 export const LESSON_VISUALS: Record<string, LessonVisual> = {
-  ...BASE_VISUALS, ...G_EXTRA_VISUALS, ...PASSPORT_VISUALS, ...PASSPORT_EXTRA_VISUALS, ...G_MORE_VISUALS, ...PL_MORE_VISUALS,
+  ...BASE_VISUALS, ...G_EXTRA_VISUALS, ...PASSPORT_VISUALS, ...PASSPORT_EXTRA_VISUALS, ...G_MORE_VISUALS, ...PL_MORE_VISUALS, ...CHATGPT_VISUALS,
 };
 
 const mergeVisualIds = (...maps: Record<string, string[]>[]): Record<string, string[]> => {
@@ -361,5 +362,5 @@ const mergeVisualIds = (...maps: Record<string, string[]>[]): Record<string, str
 
 /** 教材ID → 図表IDの対応（統合済み） */
 export const LESSON_VISUAL_IDS: Record<string, string[]> = mergeVisualIds(
-  BASE_VISUAL_IDS, G_EXTRA_VISUAL_IDS, PASSPORT_VISUAL_IDS, PASSPORT_EXTRA_VISUAL_IDS, G_MORE_VISUAL_IDS, PL_MORE_VISUAL_IDS,
+  BASE_VISUAL_IDS, G_EXTRA_VISUAL_IDS, PASSPORT_VISUAL_IDS, PASSPORT_EXTRA_VISUAL_IDS, G_MORE_VISUAL_IDS, PL_MORE_VISUAL_IDS, CHATGPT_VISUAL_IDS,
 );

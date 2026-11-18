@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import type { AppState, CardDirection, CardGrade, ExamSession, Flashcard, Lesson, Mode, Question, SyllabusNode } from './types';
+import type { AppState, CardDirection, CardGrade, ExamSession, Exercise, Flashcard, Lesson, Mode, Question, SyllabusNode } from './types';
 import { G_SYLLABUS, LITERACY_SYLLABUS, PASSPORT_SYLLABUS, SYLLABUS_VERIFIED_AT, PASSPORT_SYLLABUS_VERIFIED_AT, syllabusById } from './data/syllabus';
 import { publishedLessons } from './data/lessons';
 import { publishedQuestions } from './data/questions';
 import { publishedFlashcards } from './data/flashcards';
 import { LESSON_VISUAL_IDS } from './data/lessonVisuals';
 import { DETAIL_ILLUSTRATIONS, ILLUSTRATIONS } from './data/illustrations';
+import { CHATGPT_EXERCISES_BY_LESSON, CHATGPT_SYLLABUS } from './data/chatgpt';
 import { EXERCISES, MODEL_INFOS } from './data/exercises';
 import { NEWS_ITEMS, NEWS_LAST_ADDED } from './data/news';
 import { loadState, saveState, exportState, defaultState, salvageState, validateImport, clampGoal, BACKUP_KEY } from './lib/storage';
@@ -21,10 +22,12 @@ import { LessonVisuals, TermText, useScrollTop, pct, chapterName } from './compo
 
 const EXAM_FULL_COUNT = 145;
 const EXAM_KIND_LABEL: Record<ExamSession['kind'], string> = { full: 'フル', short: '短縮', field: '分野別', custom: 'カスタム' };
-const MODE_LABEL: Record<Mode, string> = { g: 'G検定', literacy: 'AI教養', passport: '生成AIパスポート' };
-const syllabusFor = (m: Mode) => (m === 'g' ? G_SYLLABUS : m === 'passport' ? PASSPORT_SYLLABUS : LITERACY_SYLLABUS);
+const MODE_LABEL: Record<Mode, string> = { g: 'G検定', passport: '生成AIパスポート', literacy: 'AI教養', chatgpt: 'ChatGPT・Codex' };
+const MODE_BUTTONS = Object.entries({ ...MODE_LABEL, g: 'G検定取得' }) as [Mode, string][];
+const SYLLABUS_BY_MODE: Record<Mode, SyllabusNode[]> = { g: G_SYLLABUS, passport: PASSPORT_SYLLABUS, literacy: LITERACY_SYLLABUS, chatgpt: CHATGPT_SYLLABUS };
+const syllabusFor = (mode: Mode) => SYLLABUS_BY_MODE[mode];
 /** 要点まとめPDFは配信経路の制約で Base64 テキストとして同梱し、開くときに復元して表示する */
-const SUMMARY_PDF_B64: Record<Mode, string> = {
+const SUMMARY_PDF_B64: Record<Exclude<Mode, 'chatgpt'>, string> = {
   g: `${import.meta.env.BASE_URL}pdf64/g-summary.b64`,
   passport: `${import.meta.env.BASE_URL}pdf64/passport-summary.b64`,
   literacy: `${import.meta.env.BASE_URL}pdf64/literacy-summary.b64`,
@@ -61,7 +64,7 @@ function LessonIllustration({ lessonId, variant = 'basic' }: { lessonId: string;
     </figure>
   );
 }
-const openSummaryPdf = async (mode: Mode) => {
+const openSummaryPdf = async (mode: Exclude<Mode, 'chatgpt'>) => {
   const w = window.open('', '_blank'); // ポップアップブロック回避のため先に空タブを開く
   try {
     const text = await (await fetch(SUMMARY_PDF_B64[mode])).text();
@@ -74,6 +77,7 @@ const openSummaryPdf = async (mode: Mode) => {
 };
 /** 問題の解説に添える関連図表：その問題の概念に紐づく単語カードの教材の図表を優先し、なければ同章の教材の図表 */
 const explanationVisualIdsFor = (q: Question, cap: number): string[] => {
+  if (q.mode === 'chatgpt') return (LESSON_VISUAL_IDS[q.groupId] ?? []).slice(0, cap);
   const card = publishedFlashcards.find((c) => c.conceptId === q.id) ?? publishedFlashcards.find((c) => c.questionIds.includes(q.id));
   const ids: string[] = [];
   if (card?.lessonId) ids.push(...(LESSON_VISUAL_IDS[card.lessonId] ?? []));
@@ -83,8 +87,11 @@ const explanationVisualIdsFor = (q: Question, cap: number): string[] => {
   }
   return [...new Set(ids)].slice(0, cap);
 };
-/** 試験対策モード（模試・到達判定を持つ）かどうか。AI教養のみ演習型で模試を持たない */
-const isExamMode = (m: Mode) => m !== 'literacy';
+const chatgptCardIds = new Set(publishedFlashcards.filter((card) => card.mode === 'chatgpt').map((card) => card.id));
+const chatgptQuestionIds = new Set(publishedQuestions.filter((question) => question.mode === 'chatgpt').map((question) => question.id));
+const hasMockExam = (mode: Mode) => mode === 'g' || mode === 'passport';
+const lessonIndex = (mode: Mode): Route => ({ name: mode === 'literacy' ? 'literacy' : 'lessons' });
+const exerciseIndex = (mode: Mode): Route => mode === 'chatgpt' ? { name: 'lessons', exercisesOnly: true } : { name: 'literacy' };
 const GRADE_LABEL: Record<CardGrade, string> = { known: '覚えた', fuzzy: 'あいまい', unknown: '覚えていない' };
 
 function download(name: string, text: string) {
@@ -126,17 +133,20 @@ export default function App() {
     if (state.contentVersion !== BUNDLED_CONTENT_VERSION) setState((s) => ({ ...s, contentVersion: BUNDLED_CONTENT_VERSION }));
   }, [state.contentVersion]);
 
-  // 起動時に最初に開くモード（設定）はマウント時に一度だけ適用する。教材・単語帳への深いリンクは、その内容のモードを優先する
+  // 初回は起動設定を使う。ChatGPT・Codexの学習画面を再読み込みする場合は現在のモードを復元する。
+  // 教材・単語帳への直接リンクでは、ページ内のハッシュ移動でも教材のモードを優先する。
   const startModeApplied = useRef(false);
   useEffect(() => {
-    if (startModeApplied.current) return;
+    const linked = route.name === 'lesson' ? publishedLessons.find((l) => l.id === route.id)
+      : route.name === 'card' ? publishedFlashcards.find((c) => c.id === route.id) : undefined;
+    const firstRoute = !startModeApplied.current;
     startModeApplied.current = true;
-    const linked = route.name === 'lesson' ? publishedLessons.find((l) => l.id === (route as { id: string }).id)
-      : route.name === 'card' ? publishedFlashcards.find((c) => c.id === (route as { id: string }).id) : undefined;
-    const target = linked ? linked.mode : initial.current.state.settings.startMode;
-    if (target && target !== initial.current.state.mode) setState((s) => ({ ...s, mode: target }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (!firstRoute && !linked) return;
+    const saved = initial.current.state;
+    const reloading = (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined)?.type === 'reload';
+    const target = linked?.mode ?? (reloading && route.name !== 'settings' && saved.mode === 'chatgpt' ? saved.mode : saved.settings.startMode);
+    setState((s) => s.mode === target ? s : { ...s, mode: target });
+  }, [route]);
 
   const upd = (fn: (s: AppState) => AppState) => setState((s) => fn(structuredClone(s)));
   const questions = publishedQuestions;
@@ -146,13 +156,19 @@ export default function App() {
   const modeCards = useMemo(() => publishedFlashcards.filter((c) => c.mode === state.mode), [state.mode]);
   const cardDue = dueFlashcards(state.cardReview).filter((c) => modeCards.some((x) => x.id === c.cardId));
   const modeAnswers = state.answers.filter((a) => modeQuestionIds.has(a.questionId));
+  const chatgptMode = state.mode === 'chatgpt';
+  const currentCardReview = useMemo(() => Object.fromEntries(
+    Object.entries(state.cardReview).filter(([id]) => chatgptCardIds.has(id) === chatgptMode),
+  ), [state.cardReview, chatgptMode]);
+  const dailyAnswers = chatgptMode ? modeAnswers : state.answers.filter((a) => !chatgptQuestionIds.has(a.questionId));
   const stats = fieldStats(modeAnswers, questions);
   const modeLessons = publishedLessons.filter((l) => l.mode === state.mode);
   const modeLessonsDone = state.lessonsDone.filter((id) => modeLessons.some((l) => l.id === id));
   const syllabus = syllabusFor(state.mode);
-  const ready = readiness(modeAnswers, modeLessonsDone, modeLessons.length, isExamMode(state.mode) ? state.exams.filter((e) => e.mode === state.mode) : [], questions, syllabus.length, Math.min(150, Math.ceil(modeQuestions.length / 2)));
-  const examMode = isExamMode(state.mode);
-  const activeExam = state.exams.find((e) => e.status === 'in-progress' && e.mode === state.mode);
+  const ready = readiness(modeAnswers, modeLessonsDone, modeLessons.length, hasMockExam(state.mode) ? state.exams.filter((e) => e.mode === state.mode) : [], questions, syllabus.length, Math.min(150, Math.ceil(modeQuestions.length / 2)));
+  const examMode = hasMockExam(state.mode);
+  const activeExam = examMode ? state.exams.find((e) => e.status === 'in-progress' && e.mode === state.mode) : undefined;
+  const modeExercises = state.mode === 'chatgpt' ? Object.values(CHATGPT_EXERCISES_BY_LESSON) : EXERCISES;
   useScrollTop([route.name, route.name === 'lesson' || route.name === 'card' ? route.id : '']);
 
   /** 正誤は judge で同期判定し、UI・記録・復習へ同じ結果を渡す（非同期の状態更新からは結果を取り出さない） */
@@ -183,7 +199,7 @@ export default function App() {
 
   const navItems: { route: Route; label: string; badge?: number; match: string[] }[] = [
     { route: { name: 'home' }, label: 'ホーム', match: ['home'] },
-    { route: examMode ? { name: 'lessons' } : { name: 'literacy' }, label: '教材', match: ['lessons', 'lesson', 'literacy', 'syllabus'] },
+    { route: lessonIndex(state.mode), label: '教材', match: ['lessons', 'lesson', 'literacy', 'syllabus'] },
     { route: { name: 'cards' }, label: '単語帳', badge: cardDue.length || undefined, match: ['cards', 'card'] },
     { route: { name: 'practice' }, label: '演習', match: ['practice'] },
     ...(examMode ? [{ route: { name: 'exam' } as Route, label: '模試', match: ['exam'] }] : []),
@@ -200,9 +216,10 @@ export default function App() {
         <div className="top-in">
           <span className="logo">AI総合マスター</span>
           <div role="group" aria-label="学習モード" className="seg">
-            <button className={state.mode === 'g' ? 'primary' : ''} aria-pressed={state.mode === 'g'} onClick={() => { setMode('g'); nav({ name: 'home' }); }}>G検定取得</button>
-            <button className={state.mode === 'passport' ? 'primary' : ''} aria-pressed={state.mode === 'passport'} onClick={() => { setMode('passport'); nav({ name: 'home' }); }}>生成AIパスポート</button>
-            <button className={state.mode === 'literacy' ? 'primary' : ''} aria-pressed={state.mode === 'literacy'} onClick={() => { setMode('literacy'); nav({ name: 'home' }); }}>AI教養</button>
+            {MODE_BUTTONS.map(([mode, label]) => (
+              <button key={mode} className={state.mode === mode ? 'primary' : ''} aria-pressed={state.mode === mode}
+                onClick={() => { setMode(mode); nav({ name: 'home' }); }}>{label}</button>
+            ))}
           </div>
           <nav className="main" aria-label="主要メニュー" style={{ '--n': navItems.length } as React.CSSProperties}>
             {navItems.map((n) => (
@@ -231,18 +248,18 @@ export default function App() {
           <HomeView examMode={examMode} mode={state.mode} ready={ready} dueCount={due.length} cardDueCount={cardDue.length}
             lessonsDone={modeLessonsDone.length} lessonsTotal={modeLessons.length} answersCount={modeAnswers.length}
             examsSubmitted={state.exams.filter((e) => e.status === 'submitted' && e.mode === state.mode).length} activeExam={activeExam}
-            exercisesDone={Object.values(state.exerciseChecks).filter((v) => v.length > 0).length} exercisesTotal={EXERCISES.length}
-            answers={state.answers} dailyGoalMin={state.dailyGoalMin} stats={stats} contentVersion={state.contentVersion}
+            exercisesDone={modeExercises.filter((ex) => (state.exerciseChecks[ex.id]?.length ?? 0) > 0).length} exercisesTotal={modeExercises.length}
+            answers={dailyAnswers} dailyGoalMin={state.dailyGoalMin} stats={stats} contentVersion={state.contentVersion}
             lastUpdateCheck={state.lastUpdateCheck} nav={nav} />
         )}
-        {(route.name === 'lessons' || (route.name === 'literacy' && false)) && (
-          <LessonsView mode={state.mode} state={state} onOpen={openLesson} upd={upd} onSyllabus={() => nav({ name: 'syllabus' })} />
+        {(route.name === 'lessons' || (route.name === 'literacy' && chatgptMode)) && (
+          <LessonsView mode={state.mode} exercisesOnly={route.name === 'lessons' && route.exercisesOnly && chatgptMode} state={state} onOpen={openLesson} upd={upd} onSyllabus={() => nav({ name: 'syllabus' })} />
         )}
         {route.name === 'lesson' && (lesson ? (
-          <LessonView lesson={lesson} state={state} onBack={() => nav(examMode ? { name: 'lessons' } : { name: 'literacy' })}
+          <LessonView lesson={lesson} state={state} onBack={() => nav(lessonIndex(lesson.mode))}
             onBookmark={() => toggleBookmark(`lesson:${lesson.id}`)}
             onDone={() => upd((s) => { if (!s.lessonsDone.includes(lesson.id)) s.lessonsDone.push(lesson.id); return s; })}
-            onOpenCard={openCard} onPracticeChapter={(sid) => practiceWith({ field: sid })} onSyllabus={() => nav({ name: 'syllabus' })} />
+            onOpenCard={openCard} onPracticeChapter={(sid) => practiceWith({ field: sid })} upd={upd} onSyllabus={() => nav({ name: 'syllabus' })} />
         ) : <p className="card">教材が見つかりませんでした。</p>)}
         {route.name === 'syllabus' && <SyllabusView mode={state.mode} state={state} onOpenLesson={openLesson} onOpenCards={() => nav({ name: 'cards' })} onPracticeChapter={(sid) => practiceWith({ field: sid })} />}
         {route.name === 'practice' && (
@@ -261,7 +278,7 @@ export default function App() {
             onOpenLesson={openLesson} onOpenCard={openCard} />
         )}
         {(route.name === 'cards' || route.name === 'card') && (
-          <FlashcardsView key={`cards-${state.mode}`} mode={state.mode} cards={modeCards} cardReview={state.cardReview}
+          <FlashcardsView key={`cards-${state.mode}`} mode={state.mode} cards={modeCards} cardReview={currentCardReview}
             bookmarks={state.bookmarks} onBookmark={(id) => toggleBookmark(`card:${id}`)} onGrade={gradeCard}
             direction={state.cardDirection} onDirection={(d) => upd((s) => { s.cardDirection = d; return s; })}
             focusCardId={route.name === 'card' ? route.id : undefined}
@@ -272,13 +289,16 @@ export default function App() {
           : <p className="card">模擬試験は試験対策モード（G検定／生成AIパスポート）の機能です。</p>)}
         {route.name === 'analysis' && (
           <AnalysisView mode={state.mode} examMode={examMode} ready={ready} stats={stats} exams={state.exams} questions={questions}
-            cardReview={state.cardReview} cardsTotal={modeCards.length} nav={nav} onPracticeChapter={(sid) => practiceWith({ field: sid })} />
+            cardReview={currentCardReview} cardsTotal={modeCards.length} nav={nav} onPracticeChapter={(sid) => practiceWith({ field: sid })} />
         )}
-        {route.name === 'literacy' && (
+        {route.name === 'literacy' && !chatgptMode && (
           <LiteracyView mode={state.mode} state={state} upd={upd} onOpenLesson={openLesson} onSyllabus={() => nav({ name: 'syllabus' })} />
         )}
         {route.name === 'settings' && <SettingsView state={state} upd={upd} setState={setState} />}
-        <footer>本アプリはJDLA（日本ディープラーニング協会）およびGUGA（生成AI活用普及協会）の公式アプリではありません。試験制度とシラバスは各公式ページで最新の情報を確認してください。学習記録はこのブラウザ内にのみ保存されます。</footer>
+        <footer>{chatgptMode
+          ? 'ChatGPT・Codexの提供機能と利用条件は、各教材の公式資料を参照してください。'
+          : '本アプリはJDLA（日本ディープラーニング協会）およびGUGA（生成AI活用普及協会）の公式アプリではありません。試験制度とシラバスは各公式ページで最新の情報を確認してください。'}
+          学習記録はこのブラウザ内にのみ保存されます。</footer>
       </main>
     </>
   );
@@ -299,12 +319,12 @@ function HomeView(props: {
       : props.cardDueCount > 0
         ? { title: `単語帳の復習が${props.cardDueCount}枚あります`, body: '期限の来たカードを確認しましょう。', label: '単語帳を開く', route: { name: 'cards' } as Route }
         : props.lessonsDone < props.lessonsTotal
-          ? { title: '教材の続きを学びましょう', body: `${MODE_LABEL[props.mode]}の教材 ${props.lessonsDone}／${props.lessonsTotal} 件が学習済みです。`, label: '教材を開く', route: (props.examMode ? { name: 'lessons' } : { name: 'literacy' }) as Route }
+          ? { title: '教材の続きを学びましょう', body: `${MODE_LABEL[props.mode]}の教材 ${props.lessonsDone}／${props.lessonsTotal} 件が学習済みです。`, label: '教材を開く', route: lessonIndex(props.mode) }
           : props.answersCount < 20
             ? { title: '演習でアウトプットしましょう', body: '教材は一通り学習済みです。演習で初見正答率を測りましょう。', label: '演習をはじめる', route: { name: 'practice' } as Route }
             : props.examMode
               ? { title: '模擬試験に挑戦しましょう', body: '本番形式で時間配分と弱点を確認できます。', label: '模擬試験を開く', route: { name: 'exam' } as Route }
-              : { title: '実践演習に取り組みましょう', body: '学んだ内容を実際の作業で試し、ルーブリックで自己評価します。', label: '実践演習を開く', route: { name: 'literacy' } as Route };
+              : { title: '実践演習に取り組みましょう', body: '学んだ内容を実際の作業で試し、ルーブリックで自己評価します。', label: '実践演習を開く', route: exerciseIndex(props.mode) };
   const today = todayStr();
   const todays = props.answers.filter((a) => todayStr(new Date(a.at)) === today);
   const min = Math.round(todays.reduce((acc, a) => acc + (a.seconds || 0), 0) / 60);
@@ -313,13 +333,13 @@ function HomeView(props: {
       <h1>{props.mode === 'g' ? 'G検定取得' : MODE_LABEL[props.mode]} ダッシュボード</h1>
       <div className="card next"><div><h2>{next.title}</h2><p>{next.body}</p></div><button className="primary touch" onClick={() => nav(next.route)}>{next.label}</button></div>
       <ol className="flow" aria-label="学習の流れ">
-        <li><button onClick={() => nav(props.examMode ? { name: 'lessons' } : { name: 'literacy' })}><b>教材</b><span>{props.lessonsDone}／{props.lessonsTotal}件</span></button></li>
+        <li><button onClick={() => nav(lessonIndex(props.mode))}><b>教材</b><span>{props.lessonsDone}／{props.lessonsTotal}件</span></button></li>
         <li><button onClick={() => nav({ name: 'cards' })}><b>単語帳</b><span>期限 {props.cardDueCount}枚</span></button></li>
         <li><button onClick={() => nav({ name: 'practice' })}><b>演習</b><span>回答 {props.answersCount}問</span></button></li>
         <li><button onClick={() => nav({ name: 'review' })}><b>復習</b><span>期限 {props.dueCount}問</span></button></li>
         {props.examMode
           ? <li><button onClick={() => nav({ name: 'exam' })}><b>模擬試験</b><span>提出 {props.examsSubmitted}回</span></button></li>
-          : <li><button onClick={() => nav({ name: 'literacy' })}><b>実践演習</b><span>{props.exercisesDone}／{props.exercisesTotal}件</span></button></li>}
+          : <li><button onClick={() => nav(exerciseIndex(props.mode))}><b>実践演習</b><span>{props.exercisesDone}／{props.exercisesTotal}件</span></button></li>}
       </ol>
       <div className="card">
         <div className="kpi">
@@ -352,21 +372,29 @@ function SyllabusView({ mode, state, onOpenLesson, onOpenCards, onPracticeChapte
   const nodes = syllabusFor(mode);
   return (
     <section><h1>シラバス（{MODE_LABEL[mode]}）</h1>
-      <p className="muted small">{mode === 'g' ? `公式シラバス：${SYLLABUS_VERIFIED_AT}確認` : mode === 'passport' ? `公式シラバス（2027年2月試験より適用）：${PASSPORT_SYLLABUS_VERIFIED_AT}確認` : 'AI教養の学習項目'}。章から教材・演習・単語帳へ進めます。</p>
+      {mode !== 'chatgpt' && <p className="muted small">{mode === 'g' ? `公式シラバス：${SYLLABUS_VERIFIED_AT}確認` : mode === 'passport' ? `公式シラバス（2027年2月試験より適用）：${PASSPORT_SYLLABUS_VERIFIED_AT}確認` : 'AI教養の学習項目'}。章から教材・演習・単語帳へ進めます。</p>}
       <div className="stack-list">
         {nodes.map((node) => {
           const lessons = publishedLessons.filter((l) => l.syllabusId === node.id);
           const qCount = publishedQuestions.filter((q) => q.syllabusId === node.id).length;
           const cCount = publishedFlashcards.filter((c) => c.syllabusId === node.id).length;
-          return (
+          const actions = (
+            <p className="controls">
+              {lessons.map((l) => <button key={l.id} onClick={() => onOpenLesson(l.id)}>{mode !== 'chatgpt' && '教材：'}{l.title}{state.lessonsDone.includes(l.id) ? '（学習済み）' : ''}</button>)}
+              <button onClick={() => onPracticeChapter(node.id)}>演習（{qCount}問）</button>
+              <button onClick={onOpenCards}>単語帳（{cCount}枚）</button>
+            </p>
+          );
+          return mode === 'chatgpt' ? (
+            <details key={node.id} className="card chapter">
+              <summary>{node.chapter} {node.title}</summary>
+              {actions}
+            </details>
+          ) : (
             <div key={node.id} className="card">
               <h2>{node.order}. {node.chapter}</h2>
               <p className="small muted" style={{ margin: '2px 0 8px' }}>{node.title}</p>
-              <p className="controls">
-                {lessons.map((l) => <button key={l.id} onClick={() => onOpenLesson(l.id)}>教材：{l.title}{state.lessonsDone.includes(l.id) ? '（学習済み）' : ''}</button>)}
-                <button onClick={() => onPracticeChapter(node.id)}>演習（{qCount}問）</button>
-                <button onClick={onOpenCards}>単語帳（{cCount}枚）</button>
-              </p>
+              {actions}
             </div>
           );
         })}
@@ -375,11 +403,12 @@ function SyllabusView({ mode, state, onOpenLesson, onOpenCards, onPracticeChapte
   );
 }
 
-function LessonsView({ mode, state, onOpen, upd, onSyllabus }: { mode: Mode; state: AppState; onOpen: (id: string) => void; upd: (fn: (s: AppState) => AppState) => void; onSyllabus: () => void }) {
+function LessonsView({ mode, state, onOpen, upd, onSyllabus, exercisesOnly }: { mode: Mode; exercisesOnly?: boolean; state: AppState; onOpen: (id: string) => void; upd: (fn: (s: AppState) => AppState) => void; onSyllabus: () => void }) {
   const [q, setQ] = useState('');
   const [bmOnly, setBmOnly] = useState(false);
   const syllabus = syllabusFor(mode);
   const lessons = publishedLessons.filter((l) => l.mode === mode
+    && (!exercisesOnly || CHATGPT_EXERCISES_BY_LESSON[l.id])
     && (!q || l.title.includes(q) || l.keyPoints.some((k) => k.includes(q)) || l.basic.some((p) => p.includes(q)) || l.detail.some((p) => p.includes(q)) || (syllabusById(l.syllabusId)?.chapter.includes(q) ?? false))
     && (!bmOnly || state.bookmarks.includes(`lesson:${l.id}`)));
   const accByField = new Map<string, number>();
@@ -392,17 +421,26 @@ function LessonsView({ mode, state, onOpen, upd, onSyllabus }: { mode: Mode; sta
       ? [...syllabus].sort((a, b) => Number(chapterDone(a.id)) - Number(chapterDone(b.id)) || a.order - b.order)
       : syllabus;
   return (
-    <section><h1>{MODE_LABEL[mode]} 教材</h1>
+    <section><h1>{MODE_LABEL[mode]} {exercisesOnly ? '実践演習' : '教材'}</h1>
       <p className="controls"><label>検索 <input type="search" aria-label="教材を検索" value={q} onChange={(e) => setQ(e.target.value)} placeholder="用語・分野" /></label>{' '}
         <label><input type="checkbox" checked={bmOnly} onChange={(e) => setBmOnly(e.target.checked)} /> ブックマークのみ</label>{' '}
         <label>学習順序 <select value={state.settings.order} onChange={(e) => upd((s) => { s.settings.order = e.target.value as AppState['settings']['order']; return s; })}>
-          <option value="syllabus">公式シラバス順</option><option value="recommended">推奨順（未学習を前提順に）</option>
+          <option value="syllabus">{mode === 'chatgpt' ? '章順' : '公式シラバス順'}</option><option value="recommended">推奨順（未学習を前提順に）</option>
           <option value="weak">弱点優先（分析を参照）</option><option value="free">自由学習（前提表示なし）</option></select></label>{' '}
         <button onClick={onSyllabus}>シラバスで見る</button>{' '}
-        <button onClick={() => void openSummaryPdf(mode)}>要点まとめPDFを開く</button></p>
+        {mode !== 'chatgpt' && <button onClick={() => void openSummaryPdf(mode)}>要点まとめPDFを開く</button>}</p>
       {lessons.length === 0 && <p className="muted" role="status">該当する教材がありません。検索語や「ブックマークのみ」を変えてお試しください。</p>}
-      <LessonList items={nodes.flatMap((node) => lessons.filter((l) => l.syllabusId === node.id).map((l) => ({ lesson: l, node })))}
-        state={state} onOpen={onOpen} showPrereq={order === 'recommended'} />
+      {mode === 'chatgpt' ? nodes.map((node) => {
+        const items = lessons.filter((lesson) => lesson.syllabusId === node.id).map((lesson) => ({ lesson, node }));
+        if (!items.length) return null;
+        return (
+          <details key={node.id} className="card chapter" open={Boolean(q || bmOnly)}>
+            <summary>{node.chapter} {node.title}</summary>
+            <LessonList items={items} state={state} onOpen={onOpen} />
+          </details>
+        );
+      }) : <LessonList items={nodes.flatMap((node) => lessons.filter((l) => l.syllabusId === node.id).map((l) => ({ lesson: l, node })))}
+        state={state} onOpen={onOpen} showPrereq={order === 'recommended'} />}
     </section>
   );
 }
@@ -415,8 +453,8 @@ function LessonList({ items, state, onOpen, showPrereq }: { items: { lesson: Les
         const bm = state.bookmarks.includes(`lesson:${l.id}`);
         return (
           <li key={l.id}><button className="lesson-row" onClick={() => onOpen(l.id)}>
-            <span className="ln" aria-hidden="true">{node.order}</span>
-            <span className="lt"><b>{l.title}</b><small>{node.title}</small>
+            {l.mode !== 'chatgpt' && <span className="ln" aria-hidden="true">{node.order}</span>}
+            <span className="lt"><b>{l.title}</b>{l.mode !== 'chatgpt' && <small>{node.title}</small>}
               {showPrereq && node.prerequisites.length > 0 && <small>前提：{node.prerequisites.map((p) => syllabusById(p)?.chapter).join('、')}</small>}</span>
             <span className="lm">{bm && <span aria-label="ブックマーク済み">★</span>}{done && <span className="ok">学習済み</span>}</span>
           </button></li>
@@ -426,10 +464,11 @@ function LessonList({ items, state, onOpen, showPrereq }: { items: { lesson: Les
   );
 }
 
-function LessonView({ lesson, state, onDone, onBack, onBookmark, onOpenCard, onPracticeChapter, onSyllabus }: {
-  lesson: Lesson; state: AppState; onDone: () => void; onBack: () => void; onBookmark: () => void;
+function LessonView({ lesson, state, onDone, onBack, onBookmark, onOpenCard, onPracticeChapter, onSyllabus, upd }: {
+  lesson: Lesson; state: AppState; upd: (fn: (s: AppState) => AppState) => void; onDone: () => void; onBack: () => void; onBookmark: () => void;
   onOpenCard: (id: string) => void; onPracticeChapter: (sid: string) => void; onSyllabus: () => void;
 }) {
+  const exercise = CHATGPT_EXERCISES_BY_LESSON[lesson.id];
   const done = state.lessonsDone.includes(lesson.id);
   const bookmarked = state.bookmarks.includes(`lesson:${lesson.id}`);
   const chapterCards = publishedFlashcards.filter((c) => c.syllabusId === lesson.syllabusId);
@@ -493,6 +532,7 @@ function LessonView({ lesson, state, onDone, onBack, onBookmark, onOpenCard, onP
           </details>
         )}
       </div>
+      {exercise && <ExerciseCard exercise={exercise} checked={state.exerciseChecks[exercise.id] ?? []} upd={upd} inline />}
     </article>
   );
 }
@@ -626,7 +666,7 @@ function PracticeView(props: {
   const result = session.answered[q.id];
   const bookmarked = props.bookmarks.includes(`q:${q.id}`);
   const relatedCard = publishedFlashcards.find((c) => c.conceptId === q.id) ?? publishedFlashcards.find((c) => c.questionIds.includes(q.id));
-  const relatedLesson = publishedLessons.find((l) => l.syllabusId === q.syllabusId && l.mode === q.mode);
+  const relatedLesson = publishedLessons.find((l) => q.mode === 'chatgpt' ? l.id === q.groupId : l.syllabusId === q.syllabusId && l.mode === q.mode);
   const explanationVisualIds = explanationVisualIdsFor(q, 2);
   const answerWith = (origSel: number[]) => {
     if (answeringRef.current === q.id) return; // 即時判定の二重記録を防ぐ
@@ -1017,6 +1057,26 @@ function ExamView({ state, mode, questions, syllabus, upd, onOpenLesson }: { sta
   );
 }
 
+function ExerciseCard({ exercise: ex, checked, upd, inline }: {
+  exercise: Exercise; checked: number[]; upd: (fn: (s: AppState) => AppState) => void; inline?: boolean;
+}) {
+  const title = inline ? `実践演習：${ex.title}` : ex.title;
+  return (
+    <details className="card ex">
+      <summary><b>{title}</b><span className="muted">達成 {checked.length}／{ex.rubric.length}</span></summary>
+      <p>{ex.background}</p><p><b>到達目標：</b>{ex.goal}</p>
+      <p><b>制約：</b>{ex.constraints.join('／')}</p>
+      <h3>実施手順</h3><ol>{ex.steps.map((s) => <li key={s}>{s}</li>)}</ol>
+      <h3>評価ルーブリック（自己評価：自動採点ではありません）</h3>
+      {ex.rubric.map((r, i) => <p key={r}><label><input type="checkbox" checked={checked.includes(i)} onChange={() => upd((s) => { const cur = s.exerciseChecks[ex.id] ?? []; s.exerciseChecks[ex.id] = cur.includes(i) ? cur.filter((x) => x !== i) : [...cur, i]; return s; })} /> {r}</label></p>)}
+      <p><b>模範的な考え方：</b>{ex.modelThinking}</p>
+      <p><b>失敗例：</b>{ex.failureExample}</p>
+      <p><b>改善例：</b>{ex.improvementExample}</p>
+      <p className="muted small">参考：{ex.sources.map((s) => s.title).join('、')}</p>
+    </details>
+  );
+}
+
 function LiteracyView({ mode, state, upd, onOpenLesson, onSyllabus }: { mode: Mode; state: AppState; upd: (fn: (s: AppState) => AppState) => void; onOpenLesson: (id: string) => void; onSyllabus: () => void }) {
   const [tab, setTab] = useState<'lessons' | 'exercises' | 'models' | 'news'>('lessons');
   return (
@@ -1027,23 +1087,9 @@ function LiteracyView({ mode, state, upd, onOpenLesson, onSyllabus }: { mode: Mo
         ))}
       </div>
       {tab === 'lessons' && <LessonsView mode={mode} state={state} onOpen={onOpenLesson} upd={upd} onSyllabus={onSyllabus} />}
-      {tab === 'exercises' && <div className="stack-list">{EXERCISES.map((ex) => {
-        const checked = state.exerciseChecks[ex.id] ?? [];
-        return (
-          <details key={ex.id} className="card ex">
-            <summary><b>{ex.title}</b><span className="muted">達成 {checked.length}／{ex.rubric.length}</span></summary>
-            <p>{ex.background}</p><p><b>到達目標：</b>{ex.goal}</p>
-            <p><b>制約：</b>{ex.constraints.join('／')}</p>
-            <h3>実施手順</h3><ol>{ex.steps.map((s) => <li key={s}>{s}</li>)}</ol>
-            <h3>評価ルーブリック（自己評価：自動採点ではありません）</h3>
-            {ex.rubric.map((r, i) => <p key={r}><label><input type="checkbox" checked={checked.includes(i)} onChange={() => upd((s) => { const cur = s.exerciseChecks[ex.id] ?? []; s.exerciseChecks[ex.id] = cur.includes(i) ? cur.filter((x) => x !== i) : [...cur, i]; return s; })} /> {r}</label></p>)}
-            <p><b>模範的な考え方：</b>{ex.modelThinking}</p>
-            <p><b>失敗例：</b>{ex.failureExample}</p>
-            <p><b>改善例：</b>{ex.improvementExample}</p>
-            <p className="muted small">参考：{ex.sources.map((s) => s.title).join('、')}</p>
-          </details>
-        );
-      })}</div>}
+      {tab === 'exercises' && <div className="stack-list">{EXERCISES.map((exercise) =>
+        <ExerciseCard key={exercise.id} exercise={exercise} checked={state.exerciseChecks[exercise.id] ?? []} upd={upd} />
+      )}</div>}
       {tab === 'models' && (
         <div>
           <div className="grid models">{MODEL_INFOS.map((m) => (
@@ -1116,11 +1162,11 @@ function AnalysisView({ mode, examMode, ready, stats, exams, questions, cardRevi
         <p>学習済み {cstats.studied}／{cstats.total}枚・覚えた {cstats.known}・あいまい {cstats.fuzzy}・覚えていない {cstats.unknown}・期限到来 {cstats.due}枚。単語帳の自己評価は、問題演習の正答率とは別に記録されます。</p>
         <p className="controls"><button onClick={() => nav({ name: 'cards' })}>単語帳を開く</button></p>
       </div>
-      <div className="card"><h2>解答時間</h2>
+      {mode !== 'chatgpt' && <div className="card"><h2>解答時間</h2>
         {(() => { const timed = stats; void timed; return null; })()}
         <p className="muted">時間配分の傾向は模試の結果画面で確認できます。</p>
-      </div>
-      <div className="card note"><p className="muted">{ready.note} 記録が少ない段階の指標は不確実性が大きいため、傾向として読んでください。</p></div>
+      </div>}
+      <div className="card note"><p className="muted">{mode !== 'chatgpt' && ready.note} 記録が少ない段階の指標は不確実性が大きいため、傾向として読んでください。</p></div>
     </section>
   );
 }
@@ -1139,7 +1185,7 @@ function SettingsView({ state, upd, setState }: { state: AppState; upd: (fn: (s:
           <label>文字サイズ <select value={set.fontSize} onChange={(e) => upd((s) => { s.settings.fontSize = e.target.value as 's' | 'm' | 'l'; return s; })}><option value="s">小</option><option value="m">中</option><option value="l">大</option></select></label>{' '}
           <label>表示密度 <select value={set.density} onChange={(e) => upd((s) => { s.settings.density = e.target.value as 'comfortable' | 'compact'; return s; })}><option value="comfortable">標準</option><option value="compact">コンパクト</option></select></label></p>
         <p><label><input type="checkbox" checked={set.reduceMotion} onChange={(e) => upd((s) => { s.settings.reduceMotion = e.target.checked; return s; })} /> アニメーションを抑制する</label></p>
-        <p><label>起動時に最初に開くモード <select value={set.startMode} onChange={(e) => upd((s) => { s.settings.startMode = e.target.value as Mode; return s; })}><option value="g">G検定取得</option><option value="passport">生成AIパスポート</option><option value="literacy">AI教養</option></select></label> <span className="muted small">次にアプリを開いた時から適用されます</span></p>
+        <p><label>起動時に最初に開くモード <select value={set.startMode} onChange={(e) => upd((s) => { s.settings.startMode = e.target.value as Mode; return s; })}>{MODE_BUTTONS.map(([mode, label]) => <option key={mode} value={mode}>{label}</option>)}</select></label> <span className="muted small">次にアプリを開いた時から適用されます</span></p>
         <p><label>1日の学習目標（分） <input type="number" min={5} max={180} value={state.dailyGoalMin} onChange={(e) => { const v = e.target.valueAsNumber; if (Number.isFinite(v)) upd((s) => { s.dailyGoalMin = clampGoal(v); return s; }); }} style={{ width: 80 }} /></label></p>
       </div>
       <div className="card"><h2>教材の更新</h2>

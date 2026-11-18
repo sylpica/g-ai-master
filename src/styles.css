@@ -112,6 +112,10 @@ input,select{max-width:100%;font:inherit;color:var(--fg);background:var(--card);
 .stack-list>.card{margin-bottom:10px}
 details.ex summary{display:flex;justify-content:space-between;gap:10px;align-items:baseline;list-style:none}
 details.ex summary::-webkit-details-marker{display:none}
+details.ex summary span{flex:none}
+.chapter summary{font-weight:700}
+.chapter .lesson-list{margin:8px 0 0}
+.viz-compare .viz-side ul{margin:2px 0 0;padding-left:1.2em}
 details.ex summary b::before{content:"▸ ";color:var(--muted)}
 details.ex[open] summary b::before{content:"▾ "}
 details.ex[open] summary{margin-bottom:8px}
@@ -252,10 +256,12 @@ input[type=checkbox]{width:20px;height:20px;vertical-align:-4px;accent-color:var
 .controls label:has(input[type=checkbox]){display:inline-flex;align-items:center;gap:6px;min-height:40px}
 .seg.tabs button{min-height:40px}
 @media (max-width:640px){
-  /* 上部バー：モード切替を横幅いっぱいの3等分にして見切れをなくす。アプリ名は幅に余裕があるときだけ表示する */
+  /* 上部バー：モード切替を横幅いっぱいの4列にして見切れをなくす。アプリ名は幅に余裕があるときだけ表示する */
   .top-in{gap:6px}
-  .top-in .seg{flex:1 1 auto;display:grid;grid-template-columns:auto auto auto;justify-content:stretch}
-  .top-in .seg button{min-height:36px;padding:3px 4px;font-size:clamp(11px,3.3vw,13px);min-width:0}
+  .top-in .seg{flex:1 1 auto;display:grid;grid-template-columns:repeat(4, auto);justify-content:stretch}
+  .top-in .seg button{min-height:36px;padding:3px 4px;font-size:clamp(11px,3.3vw,13px);line-height:1.2;min-width:0;white-space:normal}
   nav.main button{white-space:nowrap;font-size:clamp(10.5px,3vw,12.8px);padding:2px 0}
 }
 @media (max-width:479px){ .logo{display:none} }
+
+@media (max-width:360px){.top-in .seg button{font-size:10.5px;padding-inline:2px}}

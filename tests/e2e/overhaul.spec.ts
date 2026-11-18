@@ -50,9 +50,9 @@ test('単語帳：ブックマークしたカードだけで開始できる', as
 
 test('深いリンク：教材と単語帳へ直接アクセスでき、リロードで維持される', async ({ page }) => {
   await page.goto('/#/lesson/les-g01');
-  await expect(page.getByRole('heading', { name: '基礎解説' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /人工知能とは：定義/ })).toBeVisible();
   await page.reload();
-  await expect(page.getByRole('heading', { name: '基礎解説' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /人工知能とは：定義/ })).toBeVisible();
   await page.goto('/#/cards');
   await expect(page.getByRole('heading', { name: /単語帳/ })).toBeVisible();
 });
@@ -187,15 +187,16 @@ test('教材にイメージ図が本文中に表示される', async ({ page }) 
   await page.locator('.lesson-row').first().click();
   // タイトル直下の装飾ではなく、基礎解説カードの文章の中に置かれていること
   await expect(page.locator('article > .lesson-fig')).toHaveCount(0);
-  const card = page.locator('.card', { has: page.getByRole('heading', { name: '基礎解説' }) });
+  await page.getByRole('tab', { name: '解説', exact: true }).click();
+  const card = page.getByRole('tabpanel');
   const img = card.locator('.lesson-fig img');
   await img.scrollIntoViewIfNeeded();
   await expect(img).toBeVisible();
   await expect.poll(async () => img.evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(100);
   await expect(card.locator('.lesson-fig figcaption')).not.toHaveText('');
   // 詳細解説の中にも、その段落の内容に合わせた図が1点入っていること
-  await page.getByText('詳細解説を開く').click();
-  const dImg = page.locator('details .lesson-fig img');
+  await page.getByRole('tab', { name: '詳細・出典' }).click();
+  const dImg = page.getByRole('tabpanel').locator('.lesson-fig img');
   await dImg.scrollIntoViewIfNeeded();
   await expect(dImg).toBeVisible();
   await expect.poll(async () => dImg.evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(100);

@@ -1,3 +1,4 @@
+import { CHATGPT_LESSONS } from './chatgpt';
 import type { Lesson } from '../types';
 import { G_EXTRA_LESSONS } from './gExtraLessons';
 import { PASSPORT_LESSONS } from './passportLessons';
@@ -312,6 +313,6 @@ const BASE_LESSONS: Lesson[] = [
   }),
 ];
 
-export const LESSONS: Lesson[] = [...BASE_LESSONS, ...G_EXTRA_LESSONS, ...PASSPORT_LESSONS, ...PASSPORT_EXTRA_LESSONS];
+export const LESSONS: Lesson[] = [...BASE_LESSONS, ...G_EXTRA_LESSONS, ...PASSPORT_LESSONS, ...PASSPORT_EXTRA_LESSONS, ...CHATGPT_LESSONS];
 
 export const publishedLessons = LESSONS.filter((l) => l.status === 'published');

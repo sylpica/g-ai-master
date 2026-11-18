@@ -1,3 +1,4 @@
+import { CHATGPT_SYLLABUS } from './chatgpt';
 import type { SyllabusNode } from '../types';
 
 // JDLA公式「G検定とは」ページ掲載のシラバス（G2024#6以降適用版）を2026-11-02に確認し（2026-11-03に再確認、変更なし）、
@@ -54,5 +55,5 @@ export const PASSPORT_SYLLABUS: SyllabusNode[] = [
   p('p-05', '実践分野', '生成AIの実践と活用事例', 'プロンプトエンジニアリング／文書作成・コミュニケーション業務／企画・マーケティング業務／クリエイティブ制作／データ分析・リサーチ業務／開発・業務自動化／業種別活用', 5, ['p-02']),
 ];
 
-export const ALL_SYLLABUS: SyllabusNode[] = [...G_SYLLABUS, ...LITERACY_SYLLABUS, ...PASSPORT_SYLLABUS];
+export const ALL_SYLLABUS: SyllabusNode[] = [...G_SYLLABUS, ...LITERACY_SYLLABUS, ...PASSPORT_SYLLABUS, ...CHATGPT_SYLLABUS];
 export const syllabusById = (id: string): SyllabusNode | undefined => ALL_SYLLABUS.find((s) => s.id === id);

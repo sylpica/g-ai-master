@@ -6,7 +6,7 @@ import { readiness, examSessionStats } from '../../src/lib/analysis';
 import { FLASHCARDS } from '../../src/data/flashcards';
 import { publishedQuestions } from '../../src/data/questions';
 import { publishedLessons } from '../../src/data/lessons';
-import { G_SYLLABUS, LITERACY_SYLLABUS, PASSPORT_SYLLABUS } from '../../src/data/syllabus';
+import { ALL_SYLLABUS } from '../../src/data/syllabus';
 import fixtureV1 from '../fixtures/state-v1.json';
 import type { AnswerRecord, ExamSession } from '../../src/types';
 
@@ -125,14 +125,14 @@ describe('単語帳データの整合性', () => {
     expect(new Set(ids).size).toBe(ids.length);
     const qids = new Set(publishedQuestions.map((q) => q.id));
     const lids = new Set(publishedLessons.map((l) => l.id));
-    const chapters = new Set([...G_SYLLABUS, ...LITERACY_SYLLABUS, ...PASSPORT_SYLLABUS].map((s) => s.id));
+    const chapters = new Set(ALL_SYLLABUS.map((s) => s.id));
     for (const c of FLASHCARDS) {
       expect(lids.has(c.lessonId ?? ''), c.id).toBe(true);
       expect(chapters.has(c.syllabusId), c.id).toBe(true);
       for (const q of c.questionIds) expect(qids.has(q), `${c.id}→${q}`).toBe(true);
       expect(c.definition.length).toBeGreaterThan(0);
       expect((c.reversePrompt ?? '').length).toBeGreaterThan(0);
-      expect(c.verifiedAt).toBe('2026-11-11');
+      if (c.mode !== 'chatgpt') expect(c.verifiedAt).toBe('2026-11-11');
     }
   });
   it('裏面スタート用の reversePrompt に用語・略称が漏れていない', () => {
@@ -143,7 +143,7 @@ describe('単語帳データの整合性', () => {
     }
   });
   it('全モードの全章にカードがある', () => {
-    for (const s of [...G_SYLLABUS, ...LITERACY_SYLLABUS, ...PASSPORT_SYLLABUS]) {
+    for (const s of ALL_SYLLABUS) {
       expect(FLASHCARDS.some((c) => c.syllabusId === s.id), s.id).toBe(true);
     }
   });
