@@ -42,3 +42,17 @@ describe('正答の手がかり（作問上の偏り）', () => {
     expect(r.wrong - r.correct).toBeLessThan(0.15);
   });
 });
+
+describe('正解キーと理由文の整合（ブラインド再解答監査 2026-11-19）', () => {
+  // 全943問のブラインド再解答で、正解キーが解説・理由文とずれた問題（q-p02-111, q-p03-103）と
+  // 理由文の並びがずれた問題（q-g03-126）が見つかったことへの回帰ゲート。
+  // 「正しい。」型の理由文がちょうど1つだけある問題では、その位置が正解インデックスと一致しなければならない。
+  it('「正しい。」型の理由文が1つだけの問題では、その位置が正解と一致する', () => {
+    const bad: string[] = [];
+    for (const q of publishedQuestions) {
+      const hits = q.choiceReasons.map((r, i) => ({ r, i })).filter(({ r }) => /^正しい(。|．|$)/.test(r.trim()));
+      if (hits.length === 1 && hits[0].i !== q.answer[0]) bad.push(q.id);
+    }
+    expect(bad).toEqual([]);
+  });
+});

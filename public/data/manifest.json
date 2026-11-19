@@ -1,1 +1,7 @@
-{"contentVersion":"2026.11.18","examInfoVerifiedAt":"2026-11-03","notes":"ChatGPT・Codexモードに要点まとめPDFを追加し、単語カード3枚（Sol／Terra／ソースコード）の定義を書籍用語集と照合して是正。","publishedAt":"2026-11-19","syllabusVersion":"G2024#6-"}
+{
+  "contentVersion": "2026.11.19",
+  "examInfoVerifiedAt": "2026-11-03",
+  "notes": "全角度監査ラウンド：ブラインド再解答943問で発見した正解キーの誤り2問（q-p02-111／q-p03-103）と理由文の並び違い1問（q-g03-126）を修正し、キーと理由文の整合を回帰テスト化。",
+  "publishedAt": "2026-11-19",
+  "syllabusVersion": "G2024#6-"
+}
