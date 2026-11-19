@@ -105,7 +105,7 @@ describe('出典の裏付け（二重監査）', () => {
 });
 
 describe('イメージ図', () => {
-  const illustratedLessons = publishedLessons.filter((lesson) => lesson.mode !== 'chatgpt');
+  const illustratedLessons = publishedLessons;
   it('全教材に1点ずつあり、同梱ファイルが実在する', () => {
     for (const l of illustratedLessons) {
       const meta = ILLUSTRATIONS[l.id];
