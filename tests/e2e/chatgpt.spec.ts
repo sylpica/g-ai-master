@@ -53,7 +53,7 @@ test('第４モード・標準教材・演習付き教材と実践記録を375px
   await expect(page).toHaveURL(/#\/lessons$/);
   await expect(heading(page, 'ChatGPT・Codex 教材')).toBeVisible();
   await expect(page.getByRole('group', { name: 'AI教養の表示切替' })).toHaveCount(0);
-  await expect(page.getByRole('button', { name: '要点まとめPDFを開く' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '要点まとめPDFを開く' })).toHaveCount(1);
   await checkMobileLayout(page);
   await capture(page, info, '375px 教材一覧');
   await page.getByRole('button', { name: 'シラバスで見る' }).click();

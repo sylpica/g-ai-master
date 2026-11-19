@@ -27,10 +27,15 @@ const MODE_BUTTONS = Object.entries({ ...MODE_LABEL, g: 'G検定取得' }) as [M
 const SYLLABUS_BY_MODE: Record<Mode, SyllabusNode[]> = { g: G_SYLLABUS, passport: PASSPORT_SYLLABUS, literacy: LITERACY_SYLLABUS, chatgpt: CHATGPT_SYLLABUS };
 const syllabusFor = (mode: Mode) => SYLLABUS_BY_MODE[mode];
 /** 要点まとめPDFは配信経路の制約で Base64 テキストとして同梱し、開くときに復元して表示する */
-const SUMMARY_PDF_B64: Record<Exclude<Mode, 'chatgpt'>, string> = {
-  g: `${import.meta.env.BASE_URL}pdf64/g-summary.b64`,
-  passport: `${import.meta.env.BASE_URL}pdf64/passport-summary.b64`,
-  literacy: `${import.meta.env.BASE_URL}pdf64/literacy-summary.b64`,
+const SUMMARY_PDF_B64: Record<Mode, string[]> = {
+  g: [`${import.meta.env.BASE_URL}pdf64/g-summary.b64`],
+  passport: [`${import.meta.env.BASE_URL}pdf64/passport-summary.b64`],
+  literacy: [`${import.meta.env.BASE_URL}pdf64/literacy-summary.b64`],
+  // ChatGPT・Codex分はファイルが大きいため2ファイルに分割して同梱し、開くときに結合する
+  chatgpt: [
+    `${import.meta.env.BASE_URL}pdf64/chatgpt-summary-1.b64`,
+    `${import.meta.env.BASE_URL}pdf64/chatgpt-summary-2.b64`,
+  ],
 };
 /** 同梱イメージ図（Base64）を復元して表示する画像。復元結果はモジュール内でキャッシュする */
 const bundledImageCache = new Map<string, Promise<string>>();
@@ -64,10 +69,11 @@ function LessonIllustration({ lessonId, variant = 'basic' }: { lessonId: string;
     </figure>
   );
 }
-const openSummaryPdf = async (mode: Exclude<Mode, 'chatgpt'>) => {
+const openSummaryPdf = async (mode: Mode) => {
   const w = window.open('', '_blank'); // ポップアップブロック回避のため先に空タブを開く
   try {
-    const text = await (await fetch(SUMMARY_PDF_B64[mode])).text();
+    const parts = await Promise.all(SUMMARY_PDF_B64[mode].map(async (url) => (await (await fetch(url)).text())));
+    const text = parts.join('');
     const bin = atob(text.replace(/\s+/g, ''));
     const bytes = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
@@ -428,7 +434,7 @@ function LessonsView({ mode, state, onOpen, upd, onSyllabus, exercisesOnly }: { 
           <option value="syllabus">{mode === 'chatgpt' ? '章順' : '公式シラバス順'}</option><option value="recommended">推奨順（未学習を前提順に）</option>
           <option value="weak">弱点優先（分析を参照）</option><option value="free">自由学習（前提表示なし）</option></select></label>{' '}
         <button onClick={onSyllabus}>シラバスで見る</button>{' '}
-        {mode !== 'chatgpt' && <button onClick={() => void openSummaryPdf(mode)}>要点まとめPDFを開く</button>}</p>
+        <button onClick={() => void openSummaryPdf(mode)}>要点まとめPDFを開く</button></p>
       {lessons.length === 0 && <p className="muted" role="status">該当する教材がありません。検索語や「ブックマークのみ」を変えてお試しください。</p>}
       {mode === 'chatgpt' ? nodes.map((node) => {
         const items = lessons.filter((lesson) => lesson.syllabusId === node.id).map((lesson) => ({ lesson, node }));
