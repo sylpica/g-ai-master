@@ -1,3 +1,4 @@
+import { CHATGPT_QUESTIONS } from './chatgpt';
 import type { Question, QuestionType, SourceRef } from '../types';
 
 const JDLA = { title: 'JDLA G検定 公式ページ（シラバス）', url: 'https://www.jdla.org/certificate/general/' };
@@ -1383,7 +1384,7 @@ const ALL_RAW_QUESTIONS: Question[] = [
   ...RAW_QUESTIONS,
   ...G_EXTRA_QUESTIONS_1, ...G_EXTRA_QUESTIONS_2, ...G_EXTRA_QUESTIONS_3,
   ...PASSPORT_QUESTIONS_1, ...PASSPORT_QUESTIONS_2,
-  ...PASSPORT_EXTRA_QUESTIONS_1, ...PASSPORT_EXTRA_QUESTIONS_2,
+  ...PASSPORT_EXTRA_QUESTIONS_1, ...PASSPORT_EXTRA_QUESTIONS_2, ...CHATGPT_QUESTIONS,
 ];
 
 export const QUESTIONS: Question[] = ALL_RAW_QUESTIONS.map((x) => {

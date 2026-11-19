@@ -1,3 +1,4 @@
+import { CHATGPT_CARDS } from './chatgpt';
 import type { Flashcard } from '../types';
 import { G_EXTRA_CARDS } from './gExtraCards';
 import { PASSPORT_CARDS } from './passportCards';
@@ -913,6 +914,6 @@ const BASE_FLASHCARDS: Flashcard[] = [
   }),
 ];
 
-export const FLASHCARDS: Flashcard[] = [...BASE_FLASHCARDS, ...G_EXTRA_CARDS, ...PASSPORT_CARDS, ...PASSPORT_EXTRA_CARDS];
+export const FLASHCARDS: Flashcard[] = [...BASE_FLASHCARDS, ...G_EXTRA_CARDS, ...PASSPORT_CARDS, ...PASSPORT_EXTRA_CARDS, ...CHATGPT_CARDS];
 
 export const publishedFlashcards = FLASHCARDS;

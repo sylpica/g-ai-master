@@ -5,7 +5,7 @@
  */
 export type Route =
   | { name: 'home' }
-  | { name: 'lessons' }
+  | { name: 'lessons'; exercisesOnly?: boolean }
   | { name: 'lesson'; id: string }
   | { name: 'practice' }
   | { name: 'cards' }
@@ -22,7 +22,7 @@ export function parseHash(hash: string): Route {
   const seg = h.split('/').filter(Boolean).map((s) => { try { return decodeURIComponent(s); } catch { return s; } });
   if (seg.length === 0) return { name: 'home' };
   switch (seg[0]) {
-    case 'lessons': return { name: 'lessons' };
+    case 'lessons': return seg[1] === 'exercises' ? { name: 'lessons', exercisesOnly: true } : { name: 'lessons' };
     case 'lesson': return seg[1] ? { name: 'lesson', id: seg[1] } : { name: 'lessons' };
     case 'practice': return { name: 'practice' };
     case 'cards': return { name: 'cards' };
@@ -39,6 +39,7 @@ export function parseHash(hash: string): Route {
 
 export function routeHash(r: Route): string {
   switch (r.name) {
+    case 'lessons': return r.exercisesOnly ? '#/lessons/exercises' : '#/lessons';
     case 'lesson': return `#/lesson/${encodeURIComponent(r.id)}`;
     case 'card': return `#/card/${encodeURIComponent(r.id)}`;
     default: return `#/${r.name === 'home' ? '' : r.name}`;

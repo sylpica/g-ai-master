@@ -1,4 +1,4 @@
-export type Mode = 'g' | 'literacy' | 'passport';
+export type Mode = 'g' | 'literacy' | 'passport' | 'chatgpt';
 export type PublishStatus = 'published' | 'draft' | 'review' | 'suspended' | 'deprecated';
 
 export interface SourceRef { title: string; url: string; }

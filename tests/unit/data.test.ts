@@ -105,8 +105,9 @@ describe('出典の裏付け（二重監査）', () => {
 });
 
 describe('イメージ図', () => {
+  const illustratedLessons = publishedLessons.filter((lesson) => lesson.mode !== 'chatgpt');
   it('全教材に1点ずつあり、同梱ファイルが実在する', () => {
-    for (const l of publishedLessons) {
+    for (const l of illustratedLessons) {
       const meta = ILLUSTRATIONS[l.id];
       expect(meta, `${l.id} のメタデータ`).toBeTruthy();
       expect(meta.alt.length, l.id).toBeGreaterThan(10);
@@ -119,11 +120,11 @@ describe('イメージ図', () => {
       expect(typeof body, `${l.id} の同梱画像`).toBe('string');
       expect(body.length, l.id).toBeGreaterThan(8000);
     }
-    expect(Object.keys(ILLUSTRATIONS).length).toBe(publishedLessons.length);
+    expect(Object.keys(ILLUSTRATIONS).length).toBe(illustratedLessons.length);
   });
 
   it('詳細解説にも全教材1点ずつあり、同梱ファイルが実在する', () => {
-    for (const l of publishedLessons) {
+    for (const l of illustratedLessons) {
       const meta = DETAIL_ILLUSTRATIONS[l.id];
       expect(meta, `${l.id} の詳細メタデータ`).toBeTruthy();
       expect(meta.alt.length, l.id).toBeGreaterThan(10);
@@ -135,7 +136,7 @@ describe('イメージ図', () => {
       expect(typeof body, `${l.id} の詳細同梱画像`).toBe('string');
       expect(body.length, l.id).toBeGreaterThan(8000);
     }
-    expect(Object.keys(DETAIL_ILLUSTRATIONS).length).toBe(publishedLessons.length);
+    expect(Object.keys(DETAIL_ILLUSTRATIONS).length).toBe(illustratedLessons.length);
   });
 });
 

@@ -1,3 +1,4 @@
+import { BUNDLED_CONTENT_VERSION } from './update';
 import type { AppState, AppStateV1, Settings, AnswerRecord, ReviewCard, ExamSession, CardReview } from '../types';
 
 /**
@@ -26,7 +27,7 @@ export function defaultState(): AppState {
     exams: [],
     exerciseChecks: {},
     settings: { ...defaultSettings },
-    contentVersion: '2026.11.15',
+    contentVersion: BUNDLED_CONTENT_VERSION,
     dailyGoalMin: 20,
     cardReview: {},
     cardDirection: 'term-first',
@@ -90,7 +91,7 @@ function parseSettings(st: Record<string, unknown>): Settings {
     density: oneOf(st.density, ['comfortable', 'compact'] as const, defaultSettings.density),
     reduceMotion: typeof st.reduceMotion === 'boolean' ? st.reduceMotion : defaultSettings.reduceMotion,
     order: oneOf(st.order, ['syllabus', 'recommended', 'weak', 'free'] as const, defaultSettings.order),
-    startMode: oneOf(st.startMode, ['g', 'literacy', 'passport'] as const, defaultSettings.startMode),
+    startMode: oneOf(st.startMode, ['g', 'literacy', 'passport', 'chatgpt'] as const, defaultSettings.startMode),
   };
 }
 
@@ -126,7 +127,7 @@ function buildState(p: Record<string, unknown>, notes: string[]): AppState {
   const cardReviewRaw = isObj(p.cardReview) ? p.cardReview : {};
   return {
     schemaVersion: 2,
-    mode: oneOf(p.mode, ['g', 'literacy', 'passport'] as const, d.mode),
+    mode: oneOf(p.mode, ['g', 'literacy', 'passport', 'chatgpt'] as const, d.mode),
     answers: filter(p.answers, isValidAnswer, '回答記録'),
     lessonsDone: Array.isArray(p.lessonsDone) ? [...new Set(p.lessonsDone.filter(isStr))] : [],
     bookmarks: Array.isArray(p.bookmarks) ? [...new Set(p.bookmarks.filter(isStr))] : [],
