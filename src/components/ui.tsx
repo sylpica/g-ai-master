@@ -1,7 +1,8 @@
 import React, { useEffect } from 'react';
-import type { LessonVisual } from '../types';
+import type { LessonVisual, Mode } from '../types';
 import { syllabusById } from '../data/syllabus';
 import { LESSON_VISUALS } from '../data/lessonVisuals';
+import { splitTermSegments } from '../lib/terms';
 
 export const pct = (x: number | null) => (x === null ? '—' : `${Math.round(x * 100)}%`);
 
@@ -60,34 +61,48 @@ export function LessonVisuals({ ids }: { ids?: string[] }) {
   return <>{ids.map((id) => (LESSON_VISUALS[id] ? <Visual key={id} visual={LESSON_VISUALS[id]} /> : null))}</>;
 }
 
-/** 教材本文の用語タップ：その場で短い定義を開き、単語帳・教材・問題へつなぐ（学習位置は失わない） */
-export function TermText({ text, terms, onOpenCard }: { text: string; terms: { term: string; cardId: string; definition: string }[]; onOpenCard: (cardId: string) => void }) {
+const TERM_MODE_LABEL: Record<string, string> = { g: 'G検定', passport: '生成AIパスポート', literacy: 'AI教養', chatgpt: 'ChatGPT・Codex' };
+
+/**
+ * 本文の用語タップ：全モードの用語集（単語カード）から専門用語をリンク化し、タップでその場に定義を開く。
+ * 学習位置は失わず、ポップオーバーから単語帳のカードへも進める。
+ * nested=true のときは、選択肢ボタンなど他のボタンの内側でも動くよう span で描画し、クリックの伝播を止める。
+ * markOnly=true のときは、用語を視覚的に示すだけでタップ対象にしない。選択肢ボタンの内側では、
+ * 用語タップが「選択する」という主操作と競合して誤タップを招くため、定義は解説側の用語タップから開く。
+ */
+export function TermText({ text, onOpenCard, prefer, nested, markOnly }: {
+  text: string; onOpenCard: (cardId: string) => void; prefer?: Mode; nested?: boolean; markOnly?: boolean;
+}) {
   const [open, setOpen] = React.useState<string | null>(null);
-  if (!terms.length) return <>{text}</>;
-  // 最も長い用語から順に1回だけリンク化する（重なりを避ける）
-  const sorted = [...terms].sort((a, b) => b.term.length - a.term.length);
-  let rest = text;
-  const parts: React.ReactNode[] = [];
-  let key = 0;
-  for (const t of sorted) {
-    const idx = rest.indexOf(t.term);
-    if (idx < 0) continue;
-    if (idx > 0) { parts.push(rest.slice(0, idx)); }
-    parts.push(
-      <button type="button" key={key++} className="term" aria-expanded={open === t.cardId} onClick={() => setOpen(open === t.cardId ? null : t.cardId)}>{t.term}</button>,
-    );
-    rest = rest.slice(idx + t.term.length);
-    break; // 1段落につき最大1用語（リンクだらけにしない）
-  }
-  parts.push(rest);
-  const active = terms.find((t) => t.cardId === open);
+  const segments = React.useMemo(() => splitTermSegments(text, prefer), [text, prefer]);
+  if (!segments.some((s) => s.card)) return <>{text}</>;
+  const active = segments.find((s) => s.card && s.card.id === open)?.card;
+  const toggle = (cardId: string) => setOpen(open === cardId ? null : cardId);
   return (
     <>
-      {parts}
+      {segments.map((s, i) => {
+        if (!s.card) return <React.Fragment key={i}>{s.text}</React.Fragment>;
+        const card = s.card;
+        if (markOnly) {
+          return <span key={i} className="term term-mark">{s.text}</span>;
+        }
+        if (nested) {
+          return (
+            <span key={i} role="button" className="term" aria-expanded={open === card.id}
+              onClick={(e) => { e.stopPropagation(); toggle(card.id); }}>{s.text}</span>
+          );
+        }
+        return (
+          <button type="button" key={i} className="term" aria-expanded={open === card.id}
+            onClick={(e) => { e.stopPropagation(); toggle(card.id); }}>{s.text}</button>
+        );
+      })}
       {active && (
         <span className="term-pop" role="note">
-          <b>{active.term}</b>：{active.definition}{' '}
-          <button type="button" className="term-link" onClick={() => onOpenCard(active.cardId)}>単語帳で開く</button>
+          <b>{active.term}</b><span className="muted">（{TERM_MODE_LABEL[active.mode]}）</span>：{active.definition}{' '}
+          {nested
+            ? <span role="button" className="term-link" onClick={(e) => { e.stopPropagation(); onOpenCard(active.id); }}>単語帳で開く</span>
+            : <button type="button" className="term-link" onClick={() => onOpenCard(active.id)}>単語帳で開く</button>}
         </span>
       )}
     </>

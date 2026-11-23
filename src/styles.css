@@ -195,9 +195,10 @@ ul{padding-left:1.2rem}
 .viz-side h4{margin:0 0 6px}
 .viz-formula .viz-expr{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-s);padding:10px 12px;font-weight:700;font-size:1rem;text-align:center}
 /* 教材本文の用語（リンク形式。詳細は下の定義ポップ） */
-.term{background:none;border:0;border-bottom:1px dotted var(--accent);color:var(--accent);padding:0;min-height:0;display:inline;font-size:inherit}
+.term{background:none;border:0;border-bottom:1px dotted var(--accent);color:var(--accent);padding:0;min-height:0;display:inline;font-size:inherit;cursor:pointer;text-align:left}
 .term:hover{border-bottom-style:solid}
-.term-pop{border-top:1px solid var(--line);margin-top:8px;padding-top:8px;font-size:.94rem}
+.term-mark{cursor:inherit;color:inherit}
+.term-pop{display:block;border-top:1px solid var(--line);margin-top:8px;padding-top:8px;font-size:.94rem;font-weight:400;line-height:1.5}
 .term-link{background:none;border:0;color:var(--accent);padding:0;min-height:0;text-decoration:underline}
 /* 要点カード */
 .keypoints{border-left:4px solid var(--accent)}
@@ -256,9 +257,9 @@ input[type=checkbox]{width:20px;height:20px;vertical-align:-4px;accent-color:var
 .controls label:has(input[type=checkbox]){display:inline-flex;align-items:center;gap:6px;min-height:40px}
 .seg.tabs button{min-height:40px}
 @media (max-width:640px){
-  /* 上部バー：モード切替を横幅いっぱいの4列にして見切れをなくす。アプリ名は幅に余裕があるときだけ表示する */
+  /* 上部バー：モード切替を横幅いっぱいの5列（全統合を含む）にして見切れをなくす。アプリ名は幅に余裕があるときだけ表示する */
   .top-in{gap:6px}
-  .top-in .seg{flex:1 1 auto;display:grid;grid-template-columns:repeat(4, auto);justify-content:stretch}
+  .top-in .seg{flex:1 1 auto;display:grid;grid-template-columns:repeat(5, auto);justify-content:stretch}
   .top-in .seg button{min-height:36px;padding:3px 4px;font-size:clamp(11px,3.3vw,13px);line-height:1.2;min-width:0;white-space:normal}
   nav.main button{white-space:nowrap;font-size:clamp(10.5px,3vw,12.8px);padding:2px 0}
 }

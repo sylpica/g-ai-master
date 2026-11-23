@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import type { AppState, CardDirection, CardGrade, ExamSession, Exercise, Flashcard, Lesson, Mode, Question, SyllabusNode } from './types';
-import { G_SYLLABUS, LITERACY_SYLLABUS, PASSPORT_SYLLABUS, SYLLABUS_VERIFIED_AT, PASSPORT_SYLLABUS_VERIFIED_AT, syllabusById } from './data/syllabus';
+import type { AppMode, AppState, CardDirection, CardGrade, ExamSession, Exercise, Flashcard, Lesson, Mode, Question, SyllabusNode } from './types';
+import { ALL_SYLLABUS, G_SYLLABUS, LITERACY_SYLLABUS, PASSPORT_SYLLABUS, SYLLABUS_VERIFIED_AT, PASSPORT_SYLLABUS_VERIFIED_AT, syllabusById } from './data/syllabus';
 import { publishedLessons } from './data/lessons';
 import { publishedQuestions } from './data/questions';
 import { publishedFlashcards } from './data/flashcards';
@@ -22,10 +22,12 @@ import { LessonVisuals, TermText, useScrollTop, pct, chapterName } from './compo
 
 const EXAM_FULL_COUNT = 145;
 const EXAM_KIND_LABEL: Record<ExamSession['kind'], string> = { full: 'フル', short: '短縮', field: '分野別', custom: 'カスタム' };
-const MODE_LABEL: Record<Mode, string> = { g: 'G検定', passport: '生成AIパスポート', literacy: 'AI教養', chatgpt: 'ChatGPT・Codex' };
-const MODE_BUTTONS = Object.entries({ ...MODE_LABEL, g: 'G検定取得' }) as [Mode, string][];
+const MODE_LABEL: Record<AppMode, string> = { g: 'G検定', passport: '生成AIパスポート', literacy: 'AI教養', chatgpt: 'ChatGPT・Codex', all: '全統合' };
+const MODE_BUTTONS = Object.entries({ ...MODE_LABEL, g: 'G検定取得' }) as [AppMode, string][];
 const SYLLABUS_BY_MODE: Record<Mode, SyllabusNode[]> = { g: G_SYLLABUS, passport: PASSPORT_SYLLABUS, literacy: LITERACY_SYLLABUS, chatgpt: CHATGPT_SYLLABUS };
-const syllabusFor = (mode: Mode) => SYLLABUS_BY_MODE[mode];
+const syllabusFor = (mode: AppMode) => (mode === 'all' ? ALL_SYLLABUS : SYLLABUS_BY_MODE[mode]);
+/** 表示モードにコンテンツが属するか（全統合では全モードが対象） */
+const inMode = (contentMode: Mode, selected: AppMode) => selected === 'all' || contentMode === selected;
 /** 要点まとめPDFは配信経路の制約で Base64 テキストとして同梱し、開くときに復元して表示する */
 const SUMMARY_PDF_B64: Record<Mode, string[]> = {
   g: [`${import.meta.env.BASE_URL}pdf64/g-summary.b64`],
@@ -95,9 +97,9 @@ const explanationVisualIdsFor = (q: Question, cap: number): string[] => {
 };
 const chatgptCardIds = new Set(publishedFlashcards.filter((card) => card.mode === 'chatgpt').map((card) => card.id));
 const chatgptQuestionIds = new Set(publishedQuestions.filter((question) => question.mode === 'chatgpt').map((question) => question.id));
-const hasMockExam = (mode: Mode) => mode === 'g' || mode === 'passport';
-const lessonIndex = (mode: Mode): Route => ({ name: mode === 'literacy' ? 'literacy' : 'lessons' });
-const exerciseIndex = (mode: Mode): Route => mode === 'chatgpt' ? { name: 'lessons', exercisesOnly: true } : { name: 'literacy' };
+const hasMockExam = (mode: AppMode) => mode === 'g' || mode === 'passport';
+const lessonIndex = (mode: AppMode): Route => ({ name: mode === 'literacy' ? 'literacy' : 'lessons' });
+const exerciseIndex = (mode: AppMode): Route => mode === 'chatgpt' ? { name: 'lessons', exercisesOnly: true } : { name: 'literacy' };
 const GRADE_LABEL: Record<CardGrade, string> = { known: '覚えた', fuzzy: 'あいまい', unknown: '覚えていない' };
 
 function download(name: string, text: string) {
@@ -151,30 +153,33 @@ export default function App() {
     const saved = initial.current.state;
     const reloading = (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined)?.type === 'reload';
     const target = linked?.mode ?? (reloading && route.name !== 'settings' && saved.mode === 'chatgpt' ? saved.mode : saved.settings.startMode);
-    setState((s) => s.mode === target ? s : { ...s, mode: target });
+    // 全統合モードでは、教材・カードへのリンクで個別モードへ切り替えない
+    setState((s) => (s.mode === 'all' || s.mode === target ? s : { ...s, mode: target }));
   }, [route]);
 
   const upd = (fn: (s: AppState) => AppState) => setState((s) => fn(structuredClone(s)));
   const questions = publishedQuestions;
-  const modeQuestions = useMemo(() => questions.filter((x) => x.mode === state.mode), [questions, state.mode]);
+  const modeQuestions = useMemo(() => questions.filter((x) => inMode(x.mode, state.mode)), [questions, state.mode]);
   const modeQuestionIds = useMemo(() => new Set(modeQuestions.map((x) => x.id)), [modeQuestions]);
   const due = dueCards(state.review).filter((c) => modeQuestionIds.has(c.questionId));
-  const modeCards = useMemo(() => publishedFlashcards.filter((c) => c.mode === state.mode), [state.mode]);
+  const modeCards = useMemo(() => publishedFlashcards.filter((c) => inMode(c.mode, state.mode)), [state.mode]);
   const cardDue = dueFlashcards(state.cardReview).filter((c) => modeCards.some((x) => x.id === c.cardId));
   const modeAnswers = state.answers.filter((a) => modeQuestionIds.has(a.questionId));
   const chatgptMode = state.mode === 'chatgpt';
+  const allMode = state.mode === 'all';
   const currentCardReview = useMemo(() => Object.fromEntries(
-    Object.entries(state.cardReview).filter(([id]) => chatgptCardIds.has(id) === chatgptMode),
-  ), [state.cardReview, chatgptMode]);
-  const dailyAnswers = chatgptMode ? modeAnswers : state.answers.filter((a) => !chatgptQuestionIds.has(a.questionId));
+    Object.entries(state.cardReview).filter(([id]) => allMode || chatgptCardIds.has(id) === chatgptMode),
+  ), [state.cardReview, chatgptMode, allMode]);
+  const dailyAnswers = chatgptMode || allMode ? modeAnswers : state.answers.filter((a) => !chatgptQuestionIds.has(a.questionId));
   const stats = fieldStats(modeAnswers, questions);
-  const modeLessons = publishedLessons.filter((l) => l.mode === state.mode);
+  const modeLessons = publishedLessons.filter((l) => inMode(l.mode, state.mode));
   const modeLessonsDone = state.lessonsDone.filter((id) => modeLessons.some((l) => l.id === id));
   const syllabus = syllabusFor(state.mode);
   const ready = readiness(modeAnswers, modeLessonsDone, modeLessons.length, hasMockExam(state.mode) ? state.exams.filter((e) => e.mode === state.mode) : [], questions, syllabus.length, Math.min(150, Math.ceil(modeQuestions.length / 2)));
   const examMode = hasMockExam(state.mode);
   const activeExam = examMode ? state.exams.find((e) => e.status === 'in-progress' && e.mode === state.mode) : undefined;
-  const modeExercises = state.mode === 'chatgpt' ? Object.values(CHATGPT_EXERCISES_BY_LESSON) : EXERCISES;
+  const modeExercises = state.mode === 'chatgpt' ? Object.values(CHATGPT_EXERCISES_BY_LESSON)
+    : state.mode === 'all' ? [...EXERCISES, ...Object.values(CHATGPT_EXERCISES_BY_LESSON)] : EXERCISES;
   useScrollTop([route.name, route.name === 'lesson' || route.name === 'card' ? route.id : '']);
 
   /** 正誤は judge で同期判定し、UI・記録・復習へ同じ結果を渡す（非同期の状態更新からは結果を取り出さない） */
@@ -190,9 +195,9 @@ export default function App() {
   };
   const toggleBookmark = (key: string) => upd((s) => { s.bookmarks = s.bookmarks.includes(key) ? s.bookmarks.filter((b) => b !== key) : [...s.bookmarks, key]; return s; });
   const gradeCard = (cardId: string, grade: CardGrade) => upd((s) => { s.cardReview[cardId] = nextCardReview(s.cardReview[cardId], cardId, grade); return s; });
-  const setMode = (m: Mode) => { upd((s) => { s.mode = m; return s; }); };
-  const openLesson = (id: string) => { const l = publishedLessons.find((x) => x.id === id); if (l && l.mode !== state.mode) setMode(l.mode); nav({ name: 'lesson', id }); };
-  const openCard = (id: string) => { const c = publishedFlashcards.find((x) => x.id === id); if (c && c.mode !== state.mode) setMode(c.mode); nav({ name: 'card', id }); };
+  const setMode = (m: AppMode) => { upd((s) => { s.mode = m; return s; }); };
+  const openLesson = (id: string) => { const l = publishedLessons.find((x) => x.id === id); if (l && state.mode !== 'all' && l.mode !== state.mode) setMode(l.mode); nav({ name: 'lesson', id }); };
+  const openCard = (id: string) => { const c = publishedFlashcards.find((x) => x.id === id); if (c && state.mode !== 'all' && c.mode !== state.mode) setMode(c.mode); nav({ name: 'card', id }); };
   const practiceWith = (opts: { field?: string; text?: string; weak?: boolean }) => {
     try {
       if (opts.field) sessionStorage.setItem('g-ai:practiceField', opts.field); else sessionStorage.removeItem('g-ai:practiceField');
@@ -291,14 +296,14 @@ export default function App() {
             onOpenLesson={openLesson} onPracticeQuestion={(qid) => practiceWith({ text: qid })} />
         )}
         {route.name === 'exam' && (examMode
-          ? <ExamView state={state} mode={state.mode} questions={modeQuestions} syllabus={syllabus} upd={upd} onOpenLesson={openLesson} />
+          ? <ExamView state={state} mode={state.mode} questions={modeQuestions} syllabus={syllabus} upd={upd} onOpenLesson={openLesson} onOpenCard={openCard} />
           : <p className="card">模擬試験は試験対策モード（G検定／生成AIパスポート）の機能です。</p>)}
         {route.name === 'analysis' && (
           <AnalysisView mode={state.mode} examMode={examMode} ready={ready} stats={stats} exams={state.exams} questions={questions}
             cardReview={currentCardReview} cardsTotal={modeCards.length} nav={nav} onPracticeChapter={(sid) => practiceWith({ field: sid })} />
         )}
         {route.name === 'literacy' && !chatgptMode && (
-          <LiteracyView mode={state.mode} state={state} upd={upd} onOpenLesson={openLesson} onSyllabus={() => nav({ name: 'syllabus' })} />
+          <LiteracyView mode={state.mode} state={state} upd={upd} onOpenLesson={openLesson} onOpenCard={openCard} onSyllabus={() => nav({ name: 'syllabus' })} />
         )}
         {route.name === 'settings' && <SettingsView state={state} upd={upd} setState={setState} />}
         <footer>{chatgptMode
@@ -311,7 +316,7 @@ export default function App() {
 }
 
 function HomeView(props: {
-  examMode: boolean; mode: Mode; ready: ReturnType<typeof readiness>; dueCount: number; cardDueCount: number;
+  examMode: boolean; mode: AppMode; ready: ReturnType<typeof readiness>; dueCount: number; cardDueCount: number;
   lessonsDone: number; lessonsTotal: number; answersCount: number; examsSubmitted: number; activeExam?: ExamSession;
   exercisesDone: number; exercisesTotal: number; answers: AppState['answers']; dailyGoalMin: number;
   stats: ReturnType<typeof fieldStats>; contentVersion: string; lastUpdateCheck?: AppState['lastUpdateCheck'];
@@ -374,46 +379,51 @@ function HomeView(props: {
   );
 }
 
-function SyllabusView({ mode, state, onOpenLesson, onOpenCards, onPracticeChapter }: { mode: Mode; state: AppState; onOpenLesson: (id: string) => void; onOpenCards: () => void; onPracticeChapter: (sid: string) => void }) {
+function SyllabusView({ mode, state, onOpenLesson, onOpenCards, onPracticeChapter }: { mode: AppMode; state: AppState; onOpenLesson: (id: string) => void; onOpenCards: () => void; onPracticeChapter: (sid: string) => void }) {
   const nodes = syllabusFor(mode);
+  const nodeCard = (node: SyllabusNode) => {
+    const lessons = publishedLessons.filter((l) => l.syllabusId === node.id);
+    const qCount = publishedQuestions.filter((q) => q.syllabusId === node.id).length;
+    const cCount = publishedFlashcards.filter((c) => c.syllabusId === node.id).length;
+    const actions = (
+      <p className="controls">
+        {lessons.map((l) => <button key={l.id} onClick={() => onOpenLesson(l.id)}>{node.mode !== 'chatgpt' && '教材：'}{l.title}{state.lessonsDone.includes(l.id) ? '（学習済み）' : ''}</button>)}
+        <button onClick={() => onPracticeChapter(node.id)}>演習（{qCount}問）</button>
+        <button onClick={onOpenCards}>単語帳（{cCount}枚）</button>
+      </p>
+    );
+    return node.mode === 'chatgpt' ? (
+      <details key={node.id} className="card chapter">
+        <summary>{node.chapter} {node.title}</summary>
+        {actions}
+      </details>
+    ) : (
+      <div key={node.id} className="card">
+        <h2>{node.order}. {node.chapter}</h2>
+        <p className="small muted" style={{ margin: '2px 0 8px' }}>{node.title}</p>
+        {actions}
+      </div>
+    );
+  };
   return (
     <section><h1>シラバス（{MODE_LABEL[mode]}）</h1>
-      {mode !== 'chatgpt' && <p className="muted small">{mode === 'g' ? `公式シラバス：${SYLLABUS_VERIFIED_AT}確認` : mode === 'passport' ? `公式シラバス（2027年2月試験より適用）：${PASSPORT_SYLLABUS_VERIFIED_AT}確認` : 'AI教養の学習項目'}。章から教材・演習・単語帳へ進めます。</p>}
-      <div className="stack-list">
-        {nodes.map((node) => {
-          const lessons = publishedLessons.filter((l) => l.syllabusId === node.id);
-          const qCount = publishedQuestions.filter((q) => q.syllabusId === node.id).length;
-          const cCount = publishedFlashcards.filter((c) => c.syllabusId === node.id).length;
-          const actions = (
-            <p className="controls">
-              {lessons.map((l) => <button key={l.id} onClick={() => onOpenLesson(l.id)}>{mode !== 'chatgpt' && '教材：'}{l.title}{state.lessonsDone.includes(l.id) ? '（学習済み）' : ''}</button>)}
-              <button onClick={() => onPracticeChapter(node.id)}>演習（{qCount}問）</button>
-              <button onClick={onOpenCards}>単語帳（{cCount}枚）</button>
-            </p>
-          );
-          return mode === 'chatgpt' ? (
-            <details key={node.id} className="card chapter">
-              <summary>{node.chapter} {node.title}</summary>
-              {actions}
-            </details>
-          ) : (
-            <div key={node.id} className="card">
-              <h2>{node.order}. {node.chapter}</h2>
-              <p className="small muted" style={{ margin: '2px 0 8px' }}>{node.title}</p>
-              {actions}
-            </div>
-          );
-        })}
-      </div>
+      {mode !== 'chatgpt' && <p className="muted small">{mode === 'g' ? `公式シラバス：${SYLLABUS_VERIFIED_AT}確認` : mode === 'passport' ? `公式シラバス（2027年2月試験より適用）：${PASSPORT_SYLLABUS_VERIFIED_AT}確認` : mode === 'all' ? '全モードの学習項目' : 'AI教養の学習項目'}。章から教材・演習・単語帳へ進めます。</p>}
+      {mode === 'all' ? (
+        (['g', 'passport', 'literacy', 'chatgpt'] as Mode[]).map((m) => (
+          <div key={m}><h2>{MODE_LABEL[m]}</h2><div className="stack-list">{nodes.filter((n) => n.mode === m).map(nodeCard)}</div></div>
+        ))
+      ) : (
+        <div className="stack-list">{nodes.map(nodeCard)}</div>
+      )}
     </section>
   );
 }
 
-function LessonsView({ mode, state, onOpen, upd, onSyllabus, exercisesOnly }: { mode: Mode; exercisesOnly?: boolean; state: AppState; onOpen: (id: string) => void; upd: (fn: (s: AppState) => AppState) => void; onSyllabus: () => void }) {
+function LessonsView({ mode, state, onOpen, upd, onSyllabus, exercisesOnly }: { mode: AppMode; exercisesOnly?: boolean; state: AppState; onOpen: (id: string) => void; upd: (fn: (s: AppState) => AppState) => void; onSyllabus: () => void }) {
   const [q, setQ] = useState('');
   const [bmOnly, setBmOnly] = useState(false);
   const syllabus = syllabusFor(mode);
-  const lessons = publishedLessons.filter((l) => l.mode === mode
+  const lessons = publishedLessons.filter((l) => inMode(l.mode, mode)
     && (!exercisesOnly || CHATGPT_EXERCISES_BY_LESSON[l.id])
     && (!q || l.title.includes(q) || l.keyPoints.some((k) => k.includes(q)) || l.basic.some((p) => p.includes(q)) || l.detail.some((p) => p.includes(q)) || (syllabusById(l.syllabusId)?.chapter.includes(q) ?? false))
     && (!bmOnly || state.bookmarks.includes(`lesson:${l.id}`)));
@@ -434,7 +444,7 @@ function LessonsView({ mode, state, onOpen, upd, onSyllabus, exercisesOnly }: { 
           <option value="syllabus">{mode === 'chatgpt' ? '章順' : '公式シラバス順'}</option><option value="recommended">推奨順（未学習を前提順に）</option>
           <option value="weak">弱点優先（分析を参照）</option><option value="free">自由学習（前提表示なし）</option></select></label>{' '}
         <button onClick={onSyllabus}>シラバスで見る</button>{' '}
-        <button onClick={() => void openSummaryPdf(mode)}>要点まとめPDFを開く</button></p>
+        {mode !== 'all' && <button onClick={() => void openSummaryPdf(mode)}>要点まとめPDFを開く</button>}</p>
       {lessons.length === 0 && <p className="muted" role="status">該当する教材がありません。検索語や「ブックマークのみ」を変えてお試しください。</p>}
       {mode === 'chatgpt' ? nodes.map((node) => {
         const items = lessons.filter((lesson) => lesson.syllabusId === node.id).map((lesson) => ({ lesson, node }));
@@ -446,12 +456,12 @@ function LessonsView({ mode, state, onOpen, upd, onSyllabus, exercisesOnly }: { 
           </details>
         );
       }) : <LessonList items={nodes.flatMap((node) => lessons.filter((l) => l.syllabusId === node.id).map((l) => ({ lesson: l, node })))}
-        state={state} onOpen={onOpen} showPrereq={order === 'recommended'} />}
+        state={state} onOpen={onOpen} showPrereq={order === 'recommended'} integrated={mode === 'all'} />}
     </section>
   );
 }
 
-function LessonList({ items, state, onOpen, showPrereq }: { items: { lesson: Lesson; node: SyllabusNode }[]; state: AppState; onOpen: (id: string) => void; showPrereq?: boolean }) {
+function LessonList({ items, state, onOpen, showPrereq, integrated }: { items: { lesson: Lesson; node: SyllabusNode }[]; state: AppState; onOpen: (id: string) => void; showPrereq?: boolean; integrated?: boolean }) {
   return (
     <ul className="lesson-list">
       {items.map(({ lesson: l, node }) => {
@@ -459,8 +469,8 @@ function LessonList({ items, state, onOpen, showPrereq }: { items: { lesson: Les
         const bm = state.bookmarks.includes(`lesson:${l.id}`);
         return (
           <li key={l.id}><button className="lesson-row" onClick={() => onOpen(l.id)}>
-            {l.mode !== 'chatgpt' && <span className="ln" aria-hidden="true">{node.order}</span>}
-            <span className="lt"><b>{l.title}</b>{l.mode !== 'chatgpt' && <small>{node.title}</small>}
+            {l.mode !== 'chatgpt' && !integrated && <span className="ln" aria-hidden="true">{node.order}</span>}
+            <span className="lt"><b>{l.title}</b>{(l.mode !== 'chatgpt' || integrated) && <small>{integrated ? `${MODE_LABEL[l.mode]}：${l.mode === 'chatgpt' ? `${node.chapter} ${node.title}` : node.title}` : node.title}</small>}
               {showPrereq && node.prerequisites.length > 0 && <small>前提：{node.prerequisites.map((p) => syllabusById(p)?.chapter).join('、')}</small>}</span>
             <span className="lm">{bm && <span aria-label="ブックマーク済み">★</span>}{done && <span className="ok">学習済み</span>}</span>
           </button></li>
@@ -478,8 +488,6 @@ function LessonView({ lesson, state, onDone, onBack, onBookmark, onOpenCard, onP
   const done = state.lessonsDone.includes(lesson.id);
   const bookmarked = state.bookmarks.includes(`lesson:${lesson.id}`);
   const chapterCards = publishedFlashcards.filter((c) => c.syllabusId === lesson.syllabusId);
-  const termsOf = (chapter: string) => publishedFlashcards.filter((c) => c.syllabusId === chapter).map((c) => ({ term: c.term, cardId: c.id, definition: c.definition }));
-  const terms = termsOf(lesson.syllabusId);
   const relatedQuestions = publishedQuestions.filter((q) => q.syllabusId === lesson.syllabusId).length;
   const [tab, setTab] = useState<'key' | 'basic' | 'detail'>('key');
   useEffect(() => { setTab('key'); }, [lesson.id]);
@@ -497,7 +505,7 @@ function LessonView({ lesson, state, onDone, onBack, onBookmark, onOpenCard, onP
       <div id="lesson-pane" role="tabpanel" aria-labelledby={`lesson-tab-${tab}`}>
         {tab === 'key' && (
           <div className="card keypoints">
-            <ul>{lesson.keyPoints.map((k) => <li key={k}>{k}</li>)}</ul>
+            <ul>{lesson.keyPoints.map((k) => <li key={k}><TermText text={k} onOpenCard={onOpenCard} prefer={lesson.mode} /></li>)}</ul>
             <LessonVisuals ids={LESSON_VISUAL_IDS[lesson.id] ?? lesson.visualIds} />
           </div>
         )}
@@ -505,18 +513,18 @@ function LessonView({ lesson, state, onDone, onBack, onBookmark, onOpenCard, onP
           <div className="card">
             {lesson.basic.map((p, i) => (
               <React.Fragment key={i}>
-                <p><TermText text={p} terms={terms} onOpenCard={onOpenCard} /></p>
+                <p><TermText text={p} onOpenCard={onOpenCard} prefer={lesson.mode} /></p>
                 {ILLUSTRATIONS[lesson.id]?.after === i && <LessonIllustration lessonId={lesson.id} />}
               </React.Fragment>
             ))}
-            <h3>よくある誤解</h3><ul>{lesson.pitfalls.map((k) => <li key={k}>{k}</li>)}</ul>
+            <h3>よくある誤解</h3><ul>{lesson.pitfalls.map((k) => <li key={k}><TermText text={k} onOpenCard={onOpenCard} prefer={lesson.mode} /></li>)}</ul>
           </div>
         )}
         {tab === 'detail' && (
           <div className="card">
             {lesson.detail.map((p, i) => (
               <React.Fragment key={i}>
-                <p><TermText text={p} terms={terms} onOpenCard={onOpenCard} /></p>
+                <p><TermText text={p} onOpenCard={onOpenCard} prefer={lesson.mode} /></p>
                 {DETAIL_ILLUSTRATIONS[lesson.id]?.after === i && <LessonIllustration lessonId={lesson.id} variant="detail" />}
               </React.Fragment>
             ))}
@@ -538,7 +546,7 @@ function LessonView({ lesson, state, onDone, onBack, onBookmark, onOpenCard, onP
           </details>
         )}
       </div>
-      {exercise && <ExerciseCard exercise={exercise} checked={state.exerciseChecks[exercise.id] ?? []} upd={upd} inline />}
+      {exercise && <ExerciseCard exercise={exercise} checked={state.exerciseChecks[exercise.id] ?? []} upd={upd} inline onOpenCard={onOpenCard} />}
     </article>
   );
 }
@@ -554,7 +562,7 @@ interface PracticeSession {
 }
 
 function PracticeView(props: {
-  mode: Mode; questions: Question[]; answers: AppState['answers']; reviewMode?: boolean;
+  mode: AppMode; questions: Question[]; answers: AppState['answers']; reviewMode?: boolean;
   bookmarks: string[]; onBookmark: (id: string) => void;
   onAnswer: (q: Question, sel: number[], sec: number) => boolean;
   prefs: AppState['practicePrefs']; onPrefs: (p: AppState['practicePrefs']) => void;
@@ -691,14 +699,14 @@ function PracticeView(props: {
   return (
     <section><h1>{reviewMode ? '今日の復習' : '演習'}</h1>
       <div className="card" key={q.id}>
-        <p className="muted meta">{chapterName(q.syllabusId)}／難易度{q.difficulty}{q.type === 'multi' ? '／複数選択' : q.type === 'truefalse' ? '／正誤判定' : ''}
+        <p className="muted meta">{props.mode === 'all' ? `${MODE_LABEL[q.mode]}／` : ''}{chapterName(q.syllabusId)}／難易度{q.difficulty}{q.type === 'multi' ? '／複数選択' : q.type === 'truefalse' ? '／正誤判定' : ''}
           <span><button type="button" className="bm" aria-pressed={bookmarked} onClick={() => props.onBookmark(q.id)}>{bookmarked ? '★ 保存済み' : '☆ 保存'}</button>{doneCount}／{session.ids.length}問</span></p>
         <div className="bar" role="progressbar" aria-valuenow={Math.round((doneCount / session.ids.length) * 100)} aria-valuemin={0} aria-valuemax={100} aria-label="このセットの進捗" style={{ margin: '0 0 10px' }}><i style={{ width: `${(doneCount / session.ids.length) * 100}%` }} /></div>
-        <fieldset style={{ border: 0, padding: 0, margin: 0 }}><legend><h2 style={{ display: 'inline' }}>{q.stem}</h2></legend>
+        <fieldset style={{ border: 0, padding: 0, margin: 0 }}><legend><h2 style={{ display: 'inline' }}><TermText text={q.stem} onOpenCard={props.onOpenCard} prefer={q.mode} /></h2></legend>
           {perm.map((origIdx, dispIdx) => (
             <button key={dispIdx} className={`choice touch ${sel.includes(dispIdx) || result?.selected.includes(origIdx) ? 'sel' : ''} ${result && q.answer.includes(origIdx) ? 'right' : ''} ${result && !result.correct && result.selected.includes(origIdx) && !q.answer.includes(origIdx) ? 'wrong' : ''}`}
-              aria-pressed={sel.includes(dispIdx) || !!result?.selected.includes(origIdx)} aria-disabled={!!result} onClick={() => toggle(dispIdx)}>
-              <span className="ctext">{q.choices[origIdx]}{result && <small className="reason">{q.answer.includes(origIdx) ? '正答：' : ''}{q.choiceReasons[origIdx]}</small>}</span></button>
+              aria-pressed={sel.includes(dispIdx) || !!result?.selected.includes(origIdx)} aria-disabled={!!result} aria-label={q.choices[origIdx]} onClick={() => toggle(dispIdx)}>
+              <span className="ctext"><TermText text={q.choices[origIdx]} onOpenCard={props.onOpenCard} prefer={q.mode} markOnly />{result && <small className="reason">{q.answer.includes(origIdx) ? '正答：' : ''}<TermText text={q.choiceReasons[origIdx]} onOpenCard={props.onOpenCard} prefer={q.mode} markOnly /></small>}</span></button>
           ))}</fieldset>
         {!result ? (
           q.type === 'multi' ? <button className="primary touch" disabled={sel.length === 0} onClick={answerNow}>回答する</button> : null
@@ -708,8 +716,8 @@ function PracticeView(props: {
               <p className={result.correct ? 'ok' : 'bad'}><b>{result.correct ? '正解です。' : '不正解です。'}</b></p>
               <button className="primary touch" onClick={() => setSession((s) => (s ? { ...s, pos: s.pos + 1 } : s))}>{session.pos + 1 >= session.ids.length ? '結果を見る' : '次の問題'}</button>
             </div>
-            <h3>基礎解説</h3><p>{q.basic}</p>
-            <h3>詳細解説</h3><p>{q.detail}</p>
+            <h3>基礎解説</h3><p><TermText text={q.basic} onOpenCard={props.onOpenCard} prefer={q.mode} /></p>
+            <h3>詳細解説</h3><p><TermText text={q.detail} onOpenCard={props.onOpenCard} prefer={q.mode} /></p>
             {explanationVisualIds.length > 0 && <><h3>関連図表</h3><LessonVisuals ids={explanationVisualIds} /></>}
             <p className="controls">
               <button aria-pressed={bookmarked} onClick={() => props.onBookmark(q.id)}>{bookmarked ? '★ 保存済み' : '☆ この問題を保存'}</button>
@@ -746,7 +754,7 @@ function maskTerm(text: string, card: Flashcard): string {
 }
 
 function FlashcardsView(props: {
-  mode: Mode; cards: Flashcard[]; cardReview: AppState['cardReview'];
+  mode: AppMode; cards: Flashcard[]; cardReview: AppState['cardReview'];
   bookmarks: string[]; onBookmark: (id: string) => void; onGrade: (id: string, g: CardGrade) => void;
   direction: CardDirection; onDirection: (d: CardDirection) => void;
   focusCardId?: string; onOpenLesson: (id: string) => void; onPracticeQuestion: (qid: string) => void;
@@ -815,7 +823,7 @@ function FlashcardsView(props: {
               <option value="all">全件</option><option value="chapter">章別</option><option value="new">未学習</option>
               <option value="weak">苦手</option><option value="due">期限到来</option><option value="saved">ブックマークのみ</option></select></label>
             {poolKind === 'chapter' && <label>章 <select value={chapter} onChange={(e) => setChapter(e.target.value)}>
-              <option value="all">全章</option>{chapters.map((f) => <option key={f} value={f}>{chapterName(f)}</option>)}</select></label>}
+              <option value="all">全章</option>{chapters.map((f) => <option key={f} value={f}>{props.mode === 'all' ? `${MODE_LABEL[syllabusById(f)?.mode ?? 'g']}：${chapterName(f)}` : chapterName(f)}</option>)}</select></label>}
             <label><input type="checkbox" checked={shuffleOn} onChange={(e) => setShuffleOn(e.target.checked)} /> シャッフル</label>
           </p>
           <p>対象は{pool.length}枚です。</p>
@@ -829,7 +837,7 @@ function FlashcardsView(props: {
               {pool.map((c) => (
                 <li key={c.id}>
                   <button className="card-row" onClick={() => start(pool.map((x) => x.id), pool.findIndex((x) => x.id === c.id), true)}>
-                    <b>{c.term}</b><small>{chapterName(c.syllabusId)}{props.cardReview[c.id]?.lastGrade ? `／${GRADE_LABEL[props.cardReview[c.id].lastGrade!]}` : ''}</small>
+                    <b>{c.term}</b><small>{props.mode === 'all' ? `${MODE_LABEL[c.mode]}／` : ''}{chapterName(c.syllabusId)}{props.cardReview[c.id]?.lastGrade ? `／${GRADE_LABEL[props.cardReview[c.id].lastGrade!]}` : ''}</small>
                   </button>
                   <button className="bm" aria-pressed={props.bookmarks.includes(`card:${c.id}`)} aria-label={`${c.term}をブックマーク`} onClick={() => props.onBookmark(c.id)}>{props.bookmarks.includes(`card:${c.id}`) ? '★' : '☆'}</button>
                 </li>
@@ -888,7 +896,7 @@ function FlashcardsView(props: {
   return (
     <section><h1>単語帳（{MODE_LABEL[props.mode]}）</h1>
       <div className="card flashcard">
-        <p className="muted meta">{chapterName(card.syllabusId)}／難易度{card.difficulty}／{session.direction === 'term-first' ? '用語 → 意味' : '意味 → 用語'}
+        <p className="muted meta">{props.mode === 'all' ? `${MODE_LABEL[card.mode]}／` : ''}{chapterName(card.syllabusId)}／難易度{card.difficulty}／{session.direction === 'term-first' ? '用語 → 意味' : '意味 → 用語'}
           <span><button type="button" className="bm" aria-pressed={bookmarked} onClick={() => props.onBookmark(card.id)}>{bookmarked ? '★ 保存済み' : '☆ 保存'}</button>{session.pos + 1}／{session.ids.length}枚</span></p>
         <div className="bar" role="progressbar" aria-valuenow={Math.round((gradedCount / session.ids.length) * 100)} aria-valuemin={0} aria-valuemax={100} aria-label="単語帳の進捗" style={{ margin: '0 0 10px' }}><i style={{ width: `${(gradedCount / session.ids.length) * 100}%` }} /></div>
         <button type="button" className={`flash-face ${session.flipped ? 'back' : 'front'}`} aria-label={session.flipped ? 'カードの裏面（タップで表面に戻す。左右スワイプで前後のカードへ）' : 'カードの表面（タップで裏返す。左右スワイプで前後のカードへ）'} onClick={flip} onPointerDown={onFacePointerDown} onPointerUp={onFacePointerUp}>
@@ -924,7 +932,8 @@ function FlashcardsView(props: {
   );
 }
 
-function ExamView({ state, mode, questions, syllabus, upd, onOpenLesson }: { state: AppState; mode: Mode; questions: Question[]; syllabus: SyllabusNode[]; upd: (fn: (s: AppState) => AppState) => void; onOpenLesson: (id: string) => void }) {
+function ExamView({ state, mode, questions, syllabus, upd, onOpenLesson, onOpenCard }: { state: AppState; mode: AppMode; questions: Question[]; syllabus: SyllabusNode[]; upd: (fn: (s: AppState) => AppState) => void; onOpenLesson: (id: string) => void; onOpenCard: (id: string) => void }) {
+  const examModeValue: Mode = mode === 'passport' ? 'passport' : 'g'; // 模試は試験対策モード（G検定／生成AIパスポート）でのみ開かれる
   const active = state.exams.find((e) => e.status === 'in-progress' && e.mode === mode);
   const fullCount = mode === 'passport' ? 60 : EXAM_FULL_COUNT; // 生成AIパスポートは60問・60分（IBT）、G検定は145問程度
   const [field, setField] = useState(syllabus[2]?.id ?? syllabus[0]?.id ?? '');
@@ -940,7 +949,7 @@ function ExamView({ state, mode, questions, syllabus, upd, onOpenLesson }: { sta
     const choicePerms: Record<string, number[]> = {};
     for (const q of picked) choicePerms[q.id] = permutation(q.choices.length, rng);
     const session: ExamSession = {
-      id: `exam-${Date.now()}`, kind, mode, startedAt: new Date().toISOString(), limitSec,
+      id: `exam-${Date.now()}`, kind, mode: examModeValue, startedAt: new Date().toISOString(), limitSec,
       questionIds: picked.map((x) => x.id), answers: {}, flags: [], current: 0, pauses: [], status: 'in-progress', strict: true, choicePerms,
     };
     upd((s) => { s.exams.push(session); return s; });
@@ -1013,9 +1022,9 @@ function ExamView({ state, mode, questions, syllabus, upd, onOpenLesson }: { sta
               <p>正解 {correctCount}／{rqs.length}問（{rqs.length ? Math.round((correctCount / rqs.length) * 100) : 0}%）／一時停止 {lastSubmitted.pauses.length}回{lastSubmitted.strict ? '' : '（一時停止したため本番条件の完全再現ではありません）'}</p>
               <details className="results"><summary>問題ごとの解説（{rqs.length}問）</summary>
                 {rqs.map((x, i) => (
-                  <details key={x.id}><summary>問{i + 1}. {judge(lastSubmitted.answers[x.id] ?? [], x.answer) ? '○' : '×'} {x.stem}</summary>
-                    <ul>{x.choices.map((c, ci) => <li key={ci}><b>{String.fromCharCode(65 + ci)}.</b> {c}{x.answer.includes(ci) ? '（正答）' : ''}{(lastSubmitted.answers[x.id] ?? []).includes(ci) ? '（あなたの回答）' : ''}<br /><span className="muted small">{x.choiceReasons[ci]}</span></li>)}</ul>
-                    <p>{x.basic}</p><p>{x.detail}</p>
+                  <details key={x.id}><summary>問{i + 1}. {judge(lastSubmitted.answers[x.id] ?? [], x.answer) ? '○' : '×'} <TermText text={x.stem} onOpenCard={onOpenCard} prefer={x.mode} /></summary>
+                    <ul>{x.choices.map((c, ci) => <li key={ci}><b>{String.fromCharCode(65 + ci)}.</b> <TermText text={c} onOpenCard={onOpenCard} prefer={x.mode} />{x.answer.includes(ci) ? '（正答）' : ''}{(lastSubmitted.answers[x.id] ?? []).includes(ci) ? '（あなたの回答）' : ''}<br /><span className="muted small"><TermText text={x.choiceReasons[ci]} onOpenCard={onOpenCard} prefer={x.mode} /></span></li>)}</ul>
+                    <p><TermText text={x.basic} onOpenCard={onOpenCard} prefer={x.mode} /></p><p><TermText text={x.detail} onOpenCard={onOpenCard} prefer={x.mode} /></p>
                     <LessonVisuals ids={explanationVisualIdsFor(x, 1)} />
                     <p><button onClick={() => { const l = publishedLessons.find((les) => les.syllabusId === x.syllabusId && les.mode === x.mode); if (l) onOpenLesson(l.id); }}>教材で復習する</button></p>
                   </details>
@@ -1063,38 +1072,40 @@ function ExamView({ state, mode, questions, syllabus, upd, onOpenLesson }: { sta
   );
 }
 
-function ExerciseCard({ exercise: ex, checked, upd, inline }: {
-  exercise: Exercise; checked: number[]; upd: (fn: (s: AppState) => AppState) => void; inline?: boolean;
+function ExerciseCard({ exercise: ex, checked, upd, inline, onOpenCard }: {
+  exercise: Exercise; checked: number[]; upd: (fn: (s: AppState) => AppState) => void; inline?: boolean; onOpenCard: (id: string) => void;
 }) {
   const title = inline ? `実践演習：${ex.title}` : ex.title;
+  const tt = (text: string) => <TermText text={text} onOpenCard={onOpenCard} prefer={ex.mode} />;
   return (
     <details className="card ex">
       <summary><b>{title}</b><span className="muted">達成 {checked.length}／{ex.rubric.length}</span></summary>
-      <p>{ex.background}</p><p><b>到達目標：</b>{ex.goal}</p>
-      <p><b>制約：</b>{ex.constraints.join('／')}</p>
-      <h3>実施手順</h3><ol>{ex.steps.map((s) => <li key={s}>{s}</li>)}</ol>
+      <p>{tt(ex.background)}</p><p><b>到達目標：</b>{tt(ex.goal)}</p>
+      <p><b>制約：</b>{tt(ex.constraints.join('／'))}</p>
+      <h3>実施手順</h3><ol>{ex.steps.map((s) => <li key={s}>{tt(s)}</li>)}</ol>
       <h3>評価ルーブリック（自己評価：自動採点ではありません）</h3>
-      {ex.rubric.map((r, i) => <p key={r}><label><input type="checkbox" checked={checked.includes(i)} onChange={() => upd((s) => { const cur = s.exerciseChecks[ex.id] ?? []; s.exerciseChecks[ex.id] = cur.includes(i) ? cur.filter((x) => x !== i) : [...cur, i]; return s; })} /> {r}</label></p>)}
-      <p><b>模範的な考え方：</b>{ex.modelThinking}</p>
-      <p><b>失敗例：</b>{ex.failureExample}</p>
-      <p><b>改善例：</b>{ex.improvementExample}</p>
+      {ex.rubric.map((r, i) => <p key={r}><label><input type="checkbox" checked={checked.includes(i)} onChange={() => upd((s) => { const cur = s.exerciseChecks[ex.id] ?? []; s.exerciseChecks[ex.id] = cur.includes(i) ? cur.filter((x) => x !== i) : [...cur, i]; return s; })} /> {tt(r)}</label></p>)}
+      <p><b>模範的な考え方：</b>{tt(ex.modelThinking)}</p>
+      <p><b>失敗例：</b>{tt(ex.failureExample)}</p>
+      <p><b>改善例：</b>{tt(ex.improvementExample)}</p>
       <p className="muted small">参考：{ex.sources.map((s) => s.title).join('、')}</p>
     </details>
   );
 }
 
-function LiteracyView({ mode, state, upd, onOpenLesson, onSyllabus }: { mode: Mode; state: AppState; upd: (fn: (s: AppState) => AppState) => void; onOpenLesson: (id: string) => void; onSyllabus: () => void }) {
+function LiteracyView({ mode, state, upd, onOpenLesson, onOpenCard, onSyllabus }: { mode: AppMode; state: AppState; upd: (fn: (s: AppState) => AppState) => void; onOpenLesson: (id: string) => void; onOpenCard: (id: string) => void; onSyllabus: () => void }) {
   const [tab, setTab] = useState<'lessons' | 'exercises' | 'models' | 'news'>('lessons');
+  const exercises = mode === 'all' ? [...EXERCISES, ...Object.values(CHATGPT_EXERCISES_BY_LESSON)] : EXERCISES;
   return (
-    <section><h1>AI教養</h1>
+    <section><h1>{mode === 'all' ? '全統合（実践演習・モデル比較・ニュース）' : 'AI教養'}</h1>
       <div role="group" aria-label="AI教養の表示切替" className="seg tabs">
         {([['lessons', '教材'], ['exercises', '実践演習'], ['models', 'モデル比較'], ['news', 'ニュース']] as const).map(([id, label]) => (
           <button key={id} className={tab === id ? 'primary' : ''} aria-pressed={tab === id} onClick={() => setTab(id)}>{label}</button>
         ))}
       </div>
       {tab === 'lessons' && <LessonsView mode={mode} state={state} onOpen={onOpenLesson} upd={upd} onSyllabus={onSyllabus} />}
-      {tab === 'exercises' && <div className="stack-list">{EXERCISES.map((exercise) =>
-        <ExerciseCard key={exercise.id} exercise={exercise} checked={state.exerciseChecks[exercise.id] ?? []} upd={upd} />
+      {tab === 'exercises' && <div className="stack-list">{exercises.map((exercise) =>
+        <ExerciseCard key={exercise.id} exercise={exercise} checked={state.exerciseChecks[exercise.id] ?? []} upd={upd} onOpenCard={onOpenCard} />
       )}</div>}
       {tab === 'models' && (
         <div>
@@ -1102,10 +1113,10 @@ function LiteracyView({ mode, state, upd, onOpenLesson, onSyllabus }: { mode: Mo
             <article key={m.id} className="card">
               <h2><a href={m.source.url} target="_blank" rel="noreferrer">{m.name}</a></h2>
               <p className="muted small">{m.vendor}／{m.asOf} 確認</p>
-              <p><b>主なモデル：</b>{m.lineup}</p>
-              <p><b>適した用途：</b>{m.bestFor}</p>
+              <p><b>主なモデル：</b><TermText text={m.lineup} onOpenCard={onOpenCard} prefer="literacy" /></p>
+              <p><b>適した用途：</b><TermText text={m.bestFor} onOpenCard={onOpenCard} prefer="literacy" /></p>
               <details><summary>強み・制約・料金・プライバシー</summary>
-                <dl className="kv"><dt>強み</dt><dd>{m.strengths}</dd><dt>制約</dt><dd>{m.limits}</dd><dt>料金</dt><dd>{m.pricingNote}</dd><dt>プライバシー</dt><dd>{m.privacyNote}</dd></dl>
+                <dl className="kv"><dt>強み</dt><dd><TermText text={m.strengths} onOpenCard={onOpenCard} prefer="literacy" /></dd><dt>制約</dt><dd><TermText text={m.limits} onOpenCard={onOpenCard} prefer="literacy" /></dd><dt>料金</dt><dd><TermText text={m.pricingNote} onOpenCard={onOpenCard} prefer="literacy" /></dd><dt>プライバシー</dt><dd><TermText text={m.privacyNote} onOpenCard={onOpenCard} prefer="literacy" /></dd></dl>
               </details>
             </article>
           ))}</div>
@@ -1117,8 +1128,8 @@ function LiteracyView({ mode, state, upd, onOpenLesson, onSyllabus }: { mode: Mo
           {NEWS_ITEMS.map((n, i) => (
             <details key={n.id} className="card news" open={i === 0}>
               <summary><span className="muted small">{n.date}／{n.category}{n.importance === 'major' ? <b className="major">超重要</b> : null}</span><b className="nt">{n.title}</b></summary>
-              <p>{n.summary}</p>
-              {n.incorporated && <p><b>学習への取り込み：</b>{n.incorporated}</p>}
+              <p><TermText text={n.summary} onOpenCard={onOpenCard} prefer="literacy" /></p>
+              {n.incorporated && <p><b>学習への取り込み：</b><TermText text={n.incorporated} onOpenCard={onOpenCard} prefer="literacy" /></p>}
               <p className="muted small">出典：<a href={n.source.url} target="_blank" rel="noreferrer">{n.source.title}</a></p>
             </details>
           ))}
@@ -1130,7 +1141,7 @@ function LiteracyView({ mode, state, upd, onOpenLesson, onSyllabus }: { mode: Mo
 }
 
 function AnalysisView({ mode, examMode, ready, stats, exams, questions, cardReview, cardsTotal, nav, onPracticeChapter }: {
-  mode: Mode; examMode: boolean; ready: ReturnType<typeof readiness>; stats: ReturnType<typeof fieldStats>;
+  mode: AppMode; examMode: boolean; ready: ReturnType<typeof readiness>; stats: ReturnType<typeof fieldStats>;
   exams: ExamSession[]; questions: Question[]; cardReview: AppState['cardReview']; cardsTotal: number;
   nav: (r: Route) => void; onPracticeChapter: (sid: string) => void;
 }) {
@@ -1191,7 +1202,7 @@ function SettingsView({ state, upd, setState }: { state: AppState; upd: (fn: (s:
           <label>文字サイズ <select value={set.fontSize} onChange={(e) => upd((s) => { s.settings.fontSize = e.target.value as 's' | 'm' | 'l'; return s; })}><option value="s">小</option><option value="m">中</option><option value="l">大</option></select></label>{' '}
           <label>表示密度 <select value={set.density} onChange={(e) => upd((s) => { s.settings.density = e.target.value as 'comfortable' | 'compact'; return s; })}><option value="comfortable">標準</option><option value="compact">コンパクト</option></select></label></p>
         <p><label><input type="checkbox" checked={set.reduceMotion} onChange={(e) => upd((s) => { s.settings.reduceMotion = e.target.checked; return s; })} /> アニメーションを抑制する</label></p>
-        <p><label>起動時に最初に開くモード <select value={set.startMode} onChange={(e) => upd((s) => { s.settings.startMode = e.target.value as Mode; return s; })}>{MODE_BUTTONS.map(([mode, label]) => <option key={mode} value={mode}>{label}</option>)}</select></label> <span className="muted small">次にアプリを開いた時から適用されます</span></p>
+        <p><label>起動時に最初に開くモード <select value={set.startMode} onChange={(e) => upd((s) => { s.settings.startMode = e.target.value as AppMode; return s; })}>{MODE_BUTTONS.map(([mode, label]) => <option key={mode} value={mode}>{label}</option>)}</select></label> <span className="muted small">次にアプリを開いた時から適用されます</span></p>
         <p><label>1日の学習目標（分） <input type="number" min={5} max={180} value={state.dailyGoalMin} onChange={(e) => { const v = e.target.valueAsNumber; if (Number.isFinite(v)) upd((s) => { s.dailyGoalMin = clampGoal(v); return s; }); }} style={{ width: 80 }} /></label></p>
       </div>
       <div className="card"><h2>教材の更新</h2>

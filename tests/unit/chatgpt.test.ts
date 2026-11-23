@@ -24,7 +24,7 @@ describe('ChatGPT・Codexのコンテンツ', () => {
     expect(chapters.map((node) => node.id)).toEqual(Array.from({ length: 8 }, (_, i) => `cx-ch${i + 1}`));
     expect(lessons.map((lesson) => lesson.id)).toEqual(Array.from({ length: 56 }, (_, i) => `les-cx-${String(i + 1).padStart(2, '0')}`));
     expect(questions.map((question) => question.id)).toEqual(Array.from({ length: 112 }, (_, i) => `q-cx-${String(i + 1).padStart(3, '0')}`));
-    expect(cards.map((card) => card.id)).toEqual(Array.from({ length: 90 }, (_, i) => `fc-cx-${String(i + 1).padStart(3, '0')}`));
+    expect(cards.map((card) => card.id)).toEqual(Array.from({ length: 122 }, (_, i) => `fc-cx-${String(i + 1).padStart(3, '0')}`));
     expect(chapters.map((node) => lessons.filter((lesson) => lesson.syllabusId === node.id).length)).toEqual([5, 8, 5, 5, 11, 11, 7, 4]);
     const promptKeys = ['08', '10', '11', '12', '13', '15', '16', '17', '18', '22', '23',
       ...Array.from({ length: 10 }, (_, i) => String(25 + i)), ...Array.from({ length: 10 }, (_, i) => String(36 + i)),
@@ -100,8 +100,8 @@ describe('ChatGPT・Codexのコンテンツ', () => {
     const terms = [...glossary.matchAll(/^\d+\. (.+)$/gm)].map((match) => match[1].trim());
     expect(terms).toHaveLength(74);
     expect(cards.slice(0, 74).map((card) => card.term)).toEqual(terms);
-    expect(new Set(cards.map((card) => card.term)).size).toBe(90);
-    for (const chapter of chapters) expect(cards.slice(74).filter((card) => card.syllabusId === chapter.id)).toHaveLength(2);
+    expect(new Set(cards.map((card) => card.term)).size).toBe(122);
+    for (const chapter of chapters) expect(cards.slice(74).filter((card) => card.syllabusId === chapter.id)).toHaveLength(6);
     for (const card of cards) {
       expect(card.example?.trim()).toBeTruthy();
       expect(card.confusion?.trim()).toBeTruthy();

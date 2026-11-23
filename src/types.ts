@@ -1,4 +1,6 @@
 export type Mode = 'g' | 'literacy' | 'passport' | 'chatgpt';
+/** 画面表示上のモード。全統合（'all'）は4モードの教材・問題・単語帳を横断する表示専用の値で、コンテンツ自体の mode にはならない */
+export type AppMode = Mode | 'all';
 export type PublishStatus = 'published' | 'draft' | 'review' | 'suspended' | 'deprecated';
 
 export interface SourceRef { title: string; url: string; }
@@ -156,12 +158,12 @@ export interface Settings {
   reduceMotion: boolean;
   order: 'syllabus' | 'recommended' | 'weak' | 'free';
   /** アプリを開いた時に最初に表示するモード */
-  startMode: Mode;
+  startMode: AppMode;
 }
 
 export interface AppState {
   schemaVersion: 2;
-  mode: Mode;
+  mode: AppMode;
   answers: AnswerRecord[];
   lessonsDone: string[];
   /** lesson:<id> / q:<id> / card:<id> の安定識別子 */

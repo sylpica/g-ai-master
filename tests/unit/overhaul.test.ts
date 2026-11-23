@@ -132,7 +132,7 @@ describe('単語帳データの整合性', () => {
       for (const q of c.questionIds) expect(qids.has(q), `${c.id}→${q}`).toBe(true);
       expect(c.definition.length).toBeGreaterThan(0);
       expect((c.reversePrompt ?? '').length).toBeGreaterThan(0);
-      if (c.mode !== 'chatgpt') expect(c.verifiedAt).toBe('2026-11-11');
+      if (c.mode !== 'chatgpt') expect(['2026-11-11', '2026-11-23']).toContain(c.verifiedAt);
     }
   });
   it('裏面スタート用の reversePrompt に用語・略称が漏れていない', () => {

@@ -36,7 +36,7 @@ async function capture(page: Page, info: TestInfo, name: string) {
 
 test('第４モード・標準教材・演習付き教材と実践記録を375pxで確認する', async ({ page }, info) => {
   await page.goto('./');
-  await expect(modes(page).getByRole('button')).toHaveText(['G検定取得', '生成AIパスポート', 'AI教養', 'ChatGPT・Codex']);
+  await expect(modes(page).getByRole('button')).toHaveText(['G検定取得', '生成AIパスポート', 'AI教養', 'ChatGPT・Codex', '全統合']);
   await chatgpt(page).click();
   await expect(heading(page, 'ChatGPT・Codex ダッシュボード')).toBeVisible();
   await expect(menu(page, '模試')).toHaveCount(0);
@@ -116,7 +116,7 @@ test('演習と単語帳のセッションを375pxで使い、再読込と４モ
   await expect(page.locator('.choice')).toHaveCount(4);
 
   await menu(page, '単語帳').click();
-  await expect(page.getByText('対象は90枚です。')).toBeVisible();
+  await expect(page.getByText('対象は122枚です。')).toBeVisible();
   await page.getByLabel('シャッフル', { exact: true }).uncheck();
   await page.getByRole('button', { name: 'この条件ではじめる' }).click();
   await expect(page.locator('.card-term')).toHaveText('HTML');
@@ -130,7 +130,7 @@ test('演習と単語帳のセッションを375pxで使い、再読込と４モ
   await menu(page, '分析').click();
   await expect(heading(page, '学習分析（ChatGPT・Codex）')).toBeVisible();
   await expect(page.locator('main')).not.toContainText(/模試|到達度|到達基準/);
-  await expect(page.locator('main')).toContainText('学習済み 1／90枚');
+  await expect(page.locator('main')).toContainText('学習済み 1／122枚');
   await checkMobileLayout(page);
 
   await modes(page).getByRole('button', { name: 'AI教養' }).click();
