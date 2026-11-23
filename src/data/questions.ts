@@ -43,6 +43,7 @@ import { PASSPORT_QUESTIONS_1 } from './passportQuestions1';
 import { PASSPORT_QUESTIONS_2 } from './passportQuestions2';
 import { PASSPORT_EXTRA_QUESTIONS_1 } from './passportExtraQuestions1';
 import { PASSPORT_EXTRA_QUESTIONS_2 } from './passportExtraQuestions2';
+import { MORE_QUESTIONS } from './moreQuestions';
 
 const RAW_QUESTIONS: Question[] = [
   q('q-g01-1', 'g', 'g-01', "人工知能（AI）の定義に関する説明として、最も適切なものはどれか。",
@@ -1385,6 +1386,7 @@ const ALL_RAW_QUESTIONS: Question[] = [
   ...G_EXTRA_QUESTIONS_1, ...G_EXTRA_QUESTIONS_2, ...G_EXTRA_QUESTIONS_3,
   ...PASSPORT_QUESTIONS_1, ...PASSPORT_QUESTIONS_2,
   ...PASSPORT_EXTRA_QUESTIONS_1, ...PASSPORT_EXTRA_QUESTIONS_2, ...CHATGPT_QUESTIONS,
+  ...MORE_QUESTIONS,
 ];
 
 export const QUESTIONS: Question[] = ALL_RAW_QUESTIONS.map((x) => {

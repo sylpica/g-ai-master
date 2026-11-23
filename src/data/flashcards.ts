@@ -1,8 +1,12 @@
 import { CHATGPT_CARDS } from './chatgpt';
+import { CHATGPT_MORE_CARDS } from './chatgpt/moreCards';
 import type { Flashcard } from '../types';
 import { G_EXTRA_CARDS } from './gExtraCards';
+import { G_MORE_CARDS } from './gMoreCards';
+import { LITERACY_MORE_CARDS } from './literacyMoreCards';
 import { PASSPORT_CARDS } from './passportCards';
 import { PASSPORT_EXTRA_CARDS } from './passportExtraCards';
+import { PASSPORT_MORE_CARDS } from './passportMoreCards';
 
 // 単語帳（フラッシュカード）のデータ。
 // 収録方針：既存の教材（lessons.ts）と問題（questions.ts）に実際に現れる重要用語だけを収録し、
@@ -914,6 +918,6 @@ const BASE_FLASHCARDS: Flashcard[] = [
   }),
 ];
 
-export const FLASHCARDS: Flashcard[] = [...BASE_FLASHCARDS, ...G_EXTRA_CARDS, ...PASSPORT_CARDS, ...PASSPORT_EXTRA_CARDS, ...CHATGPT_CARDS];
+export const FLASHCARDS: Flashcard[] = [...BASE_FLASHCARDS, ...G_EXTRA_CARDS, ...G_MORE_CARDS, ...LITERACY_MORE_CARDS, ...PASSPORT_CARDS, ...PASSPORT_EXTRA_CARDS, ...PASSPORT_MORE_CARDS, ...CHATGPT_CARDS, ...CHATGPT_MORE_CARDS];
 
 export const publishedFlashcards = FLASHCARDS;
