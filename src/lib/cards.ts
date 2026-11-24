@@ -24,6 +24,12 @@ export function nextCardReview(prev: CardReview | undefined, cardId: string, gra
   return { ...base, ease: Math.min(CARD_PARAMS.maxEase, base.ease + 0.05), intervalDays: interval, due: addDays(today, interval), reps, lastGrade: grade, lastAt: at };
 }
 
+/** 用語が英字主体かどうか（英字略称・英名だけを絞り込む単語帳フィルタ用）。
+ * 日本語を1文字でも含む用語は対象外。数字・空白・ハイフン・スラッシュ・ドット等は英字に付随するものとして許容する。 */
+export function isAsciiTerm(term: string): boolean {
+  return /^[A-Za-z0-9][A-Za-z0-9 .+/\-()]*$/.test(term) && /[A-Za-z]/.test(term);
+}
+
 export function dueFlashcards(review: Record<string, CardReview>, today = todayStr()): CardReview[] {
   return Object.values(review).filter((c) => c.due <= today).sort((a, b) => a.due.localeCompare(b.due));
 }

@@ -98,8 +98,8 @@ input,select{max-width:100%;font:inherit;color:var(--fg);background:var(--card);
 .controls{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center}
 .controls input[type=search]{width:12em}
 /* 演習：回答後は選択肢の下に判定理由を表示（選択肢の文を繰り返す一覧を作らない） */
-.choice .ctext{display:flex;flex-direction:column;gap:4px;min-width:0}
-.choice .reason{color:var(--muted);font-size:.86rem;line-height:1.5}
+.choice .ctext{display:block;min-width:0}
+.choice .reason{display:block;margin-top:4px;color:var(--muted);font-size:.86rem;line-height:1.5}
 .choice[aria-disabled="true"]{cursor:default}
 .fb{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:4px 0 2px;scroll-margin-bottom:80px}
 .fb p{margin:0}

@@ -35,9 +35,11 @@ const isAsciiAlnum = (ch: string | undefined) => ch !== undefined && /[A-Za-z0-9
  * その中では表示中モード（prefer）のカードを優先する（例：「壁打ち」はブレインストーミングの別名でもあるが、
  * 専用の「壁打ち」カードを出す）。
  */
-function pickCard(label: string, prefer?: Mode): Flashcard | undefined {
-  const cards = cardsByLabel.get(label);
-  if (!cards) return undefined;
+function pickCard(label: string, prefer?: Mode, excludeId?: string): Flashcard | undefined {
+  const all = cardsByLabel.get(label);
+  if (!all) return undefined;
+  const cards = excludeId ? all.filter((c) => c.id !== excludeId) : all;
+  if (!cards.length) return undefined;
   const isTerm = (c: Flashcard) => c.term === label;
   return cards.find((c) => isTerm(c) && c.mode === prefer)
     ?? cards.find(isTerm)
@@ -57,7 +59,7 @@ export interface TermSegment {
  * 本文を用語と通常テキストに分割する。1つの断片（段落）の中では、同じ表記は最初の出現だけをリンク化する
  * （リンクだらけにして読みにくくしないため）。長い表記を優先し、英数字の単語の途中では一致させない。
  */
-export function splitTermSegments(text: string, prefer?: Mode): TermSegment[] {
+export function splitTermSegments(text: string, prefer?: Mode, excludeId?: string): TermSegment[] {
   const segments: TermSegment[] = [];
   const linked = new Set<string>();
   let plain = '';
@@ -73,7 +75,9 @@ export function splitTermSegments(text: string, prefer?: Mode): TermSegment[] {
         // 英数字で始まる/終わる表記は、単語の途中（前後が英数字）では一致させない
         if (isAsciiAlnum(label[0]) && isAsciiAlnum(text[i - 1])) continue;
         if (isAsciiAlnum(label[label.length - 1]) && isAsciiAlnum(text[i + label.length])) continue;
-        matched = { label, card: pickCard(label, prefer)! };
+        const card = pickCard(label, prefer, excludeId);
+        if (!card) continue;
+        matched = { label, card };
         break;
       }
     }

@@ -6,10 +6,11 @@ import { splitTermSegments } from '../lib/terms';
 
 export const pct = (x: number | null) => (x === null ? '—' : `${Math.round(x * 100)}%`);
 
-export function Visual({ visual }: { visual: LessonVisual }) {
+export function Visual({ visual, onOpenCard, prefer }: { visual: LessonVisual; onOpenCard?: (cardId: string) => void; prefer?: Mode }) {
+  const tt = (text: string) => (onOpenCard ? <TermText text={text} onOpenCard={onOpenCard} prefer={prefer} /> : text);
   return (
     <figure className="viz">
-      <figcaption>{visual.title}</figcaption>
+      <figcaption>{tt(visual.title)}</figcaption>
       {visual.kind === 'nest' && (
         <div className="viz-nest" role="img" aria-label={`${visual.title}：${visual.layers.map((l) => l.label).join('の中に')}`}>
           {visual.layers.map((l, i) => (
@@ -22,43 +23,43 @@ export function Visual({ visual }: { visual: LessonVisual }) {
       {visual.kind === 'table' && (
         <div className="tablewrap"><table className="stack">
           <thead><tr>{visual.columns.map((c) => <th key={c}>{c}</th>)}</tr></thead>
-          <tbody>{visual.rows.map((r, i) => <tr key={i}>{r.map((cell, j) => <td key={j} data-label={visual.columns[j]}>{cell}</td>)}</tr>)}</tbody>
+          <tbody>{visual.rows.map((r, i) => <tr key={i}>{r.map((cell, j) => <td key={j} data-label={visual.columns[j]}>{tt(cell)}</td>)}</tr>)}</tbody>
         </table></div>
       )}
       {visual.kind === 'flow' && (
         <ol className="viz-flow">
           {visual.steps.map((s, i) => (
-            <li key={i}><div className="fs"><b>{s.label}</b>{s.note && <span>{s.note}</span>}</div>{i < visual.steps.length - 1 && <span className="viz-arrow" aria-hidden="true">→</span>}</li>
+            <li key={i}><div className="fs"><b>{tt(s.label)}</b>{s.note && <span>{tt(s.note)}</span>}</div>{i < visual.steps.length - 1 && <span className="viz-arrow" aria-hidden="true">→</span>}</li>
           ))}
         </ol>
       )}
       {visual.kind === 'compare' && (
         <div className="viz-compare">
           {[visual.left, visual.right].map((side, i) => (
-            <div key={i} className="viz-side"><b>{side.head}</b><ul>{side.points.map((p) => <li key={p}>{p}</li>)}</ul></div>
+            <div key={i} className="viz-side"><b>{tt(side.head)}</b><ul>{side.points.map((p) => <li key={p}>{tt(p)}</li>)}</ul></div>
           ))}
         </div>
       )}
       {visual.kind === 'formula' && (
         <div className="viz-formula">
           <p className="viz-expr">{visual.expr}</p>
-          <dl className="kv">{visual.vars.map((v) => <React.Fragment key={v.sym}><dt>{v.sym}</dt><dd>{v.meaning}</dd></React.Fragment>)}</dl>
-          {visual.example && <p className="viz-example">{visual.example}</p>}
+          <dl className="kv">{visual.vars.map((v) => <React.Fragment key={v.sym}><dt>{v.sym}</dt><dd>{tt(v.meaning)}</dd></React.Fragment>)}</dl>
+          {visual.example && <p className="viz-example">{tt(visual.example)}</p>}
         </div>
       )}
       {visual.kind === 'timeline' && (
         <ol className="viz-timeline">
-          {visual.events.map((e, i) => <li key={i}><div className="te"><b>{e.when}</b><span>{e.label}</span></div></li>)}
+          {visual.events.map((e, i) => <li key={i}><div className="te"><b>{e.when}</b><span>{tt(e.label)}</span></div></li>)}
         </ol>
       )}
-      {visual.caption && <p className="viz-caption">{visual.caption}</p>}
+      {visual.caption && <p className="viz-caption">{tt(visual.caption)}</p>}
     </figure>
   );
 }
 
-export function LessonVisuals({ ids }: { ids?: string[] }) {
+export function LessonVisuals({ ids, onOpenCard, prefer }: { ids?: string[]; onOpenCard?: (cardId: string) => void; prefer?: Mode }) {
   if (!ids?.length) return null;
-  return <>{ids.map((id) => (LESSON_VISUALS[id] ? <Visual key={id} visual={LESSON_VISUALS[id]} /> : null))}</>;
+  return <>{ids.map((id) => (LESSON_VISUALS[id] ? <Visual key={id} visual={LESSON_VISUALS[id]} onOpenCard={onOpenCard} prefer={prefer} /> : null))}</>;
 }
 
 const TERM_MODE_LABEL: Record<string, string> = { g: 'G検定', passport: '生成AIパスポート', literacy: 'AI教養', chatgpt: 'ChatGPT・Codex' };
@@ -70,11 +71,11 @@ const TERM_MODE_LABEL: Record<string, string> = { g: 'G検定', passport: '生�
  * markOnly=true のときは、用語を視覚的に示すだけでタップ対象にしない。選択肢ボタンの内側では、
  * 用語タップが「選択する」という主操作と競合して誤タップを招くため、定義は解説側の用語タップから開く。
  */
-export function TermText({ text, onOpenCard, prefer, nested, markOnly }: {
-  text: string; onOpenCard: (cardId: string) => void; prefer?: Mode; nested?: boolean; markOnly?: boolean;
+export function TermText({ text, onOpenCard, prefer, nested, markOnly, excludeId }: {
+  text: string; onOpenCard: (cardId: string) => void; prefer?: Mode; nested?: boolean; markOnly?: boolean; excludeId?: string;
 }) {
   const [open, setOpen] = React.useState<string | null>(null);
-  const segments = React.useMemo(() => splitTermSegments(text, prefer), [text, prefer]);
+  const segments = React.useMemo(() => splitTermSegments(text, prefer, excludeId), [text, prefer, excludeId]);
   if (!segments.some((s) => s.card)) return <>{text}</>;
   const active = segments.find((s) => s.card && s.card.id === open)?.card;
   const toggle = (cardId: string) => setOpen(open === cardId ? null : cardId);

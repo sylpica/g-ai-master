@@ -56,3 +56,14 @@ test('設定：起動モードの既定はG検定', async ({ page }) => {
   await page.reload();
   await expect(page.getByRole('heading', { name: 'G検定取得 ダッシュボード' })).toBeVisible();
 });
+
+test('生成AIパスポート：単語帳の英字のみ絞り込みで英字カードだけが出る', async ({ page }) => {
+  await page.getByRole('button', { name: '生成AIパスポート', exact: true }).click();
+  await page.getByLabel('主要メニュー').getByRole('button', { name: '単語帳' }).click();
+  await page.getByLabel(/絞り込み/).selectOption('ascii');
+  await expect(page.getByText('対象は49枚です。')).toBeVisible();
+  await page.getByRole('button', { name: 'この条件ではじめる' }).click();
+  await expect(page.locator('.flash-face')).toBeVisible();
+  const term = await page.locator('.card-term').first().textContent();
+  expect(term).toMatch(/^[A-Za-z0-9][A-Za-z0-9 .+/\-()]*$/);
+});

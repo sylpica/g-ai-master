@@ -7,6 +7,7 @@ import { LITERACY_MORE_CARDS } from './literacyMoreCards';
 import { PASSPORT_CARDS } from './passportCards';
 import { PASSPORT_EXTRA_CARDS } from './passportExtraCards';
 import { PASSPORT_MORE_CARDS } from './passportMoreCards';
+import { PASSPORT_INDEX_CARDS } from './passportIndexCards';
 
 // 単語帳（フラッシュカード）のデータ。
 // 収録方針：既存の教材（lessons.ts）と問題（questions.ts）に実際に現れる重要用語だけを収録し、
@@ -918,6 +919,6 @@ const BASE_FLASHCARDS: Flashcard[] = [
   }),
 ];
 
-export const FLASHCARDS: Flashcard[] = [...BASE_FLASHCARDS, ...G_EXTRA_CARDS, ...G_MORE_CARDS, ...LITERACY_MORE_CARDS, ...PASSPORT_CARDS, ...PASSPORT_EXTRA_CARDS, ...PASSPORT_MORE_CARDS, ...CHATGPT_CARDS, ...CHATGPT_MORE_CARDS];
+export const FLASHCARDS: Flashcard[] = [...BASE_FLASHCARDS, ...G_EXTRA_CARDS, ...G_MORE_CARDS, ...LITERACY_MORE_CARDS, ...PASSPORT_CARDS, ...PASSPORT_EXTRA_CARDS, ...PASSPORT_MORE_CARDS, ...PASSPORT_INDEX_CARDS, ...CHATGPT_CARDS, ...CHATGPT_MORE_CARDS];
 
 export const publishedFlashcards = FLASHCARDS;

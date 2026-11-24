@@ -89,7 +89,7 @@ export const PASSPORT_CARDS: Flashcard[] = [
   }),
   // ===== p-02 生成AI =====
   c({
-    id: 'card-p02-01', mode: 'passport', syllabusId: 'p-02', conceptId: 'q-p02-13', term: '大規模言語モデル', aliases: ['LLM'],
+    id: 'card-p02-01', mode: 'passport', syllabusId: 'p-02', conceptId: 'q-p02-13', term: '大規模言語モデル', aliases: ['LLM', 'Large Language Model'],
     definition: '大量のテキストで事前学習された大規模な言語モデル。文章生成、要約、翻訳、質問応答など幅広いタスクをこなし、生成AIの中核技術となっている。',
     reversePrompt: '大量のテキストで事前学習され、文章生成や要約など幅広いタスクをこなす、生成AIの中核となる大規模なモデルは？',
     confusion: '言語モデル（LM）一般と比べて規模が大きく、創発的能力が見られる点が特徴とされる。',
@@ -136,7 +136,7 @@ export const PASSPORT_CARDS: Flashcard[] = [
     lessonId: 'les-p02a', questionIds: ['q-p02-2'], sources: [SYLLABUS], difficulty: 2,
   }),
   c({
-    id: 'card-p02-08', mode: 'passport', syllabusId: 'p-02', conceptId: 'q-p02-5', term: 'RLHF', aliases: ['人間のフィードバックによる強化学習'],
+    id: 'card-p02-08', mode: 'passport', syllabusId: 'p-02', conceptId: 'q-p02-5', term: 'RLHF', aliases: ['人間のフィードバックによる強化学習', 'Reinforcement Learning from Human Feedback'],
     definition: '人間のフィードバックによる強化学習。人間による出力への評価を報酬として学習し、モデルを人間の好みや意図に沿うよう調整する手法。',
     reversePrompt: '人間の評価を報酬として強化学習し、モデルを人間の意図に沿うよう調整する手法は？',
     confusion: '事前学習の後に行われる調整段階の一つで、指示チューニング（Instruction Tuning）とあわせて使われる。',
