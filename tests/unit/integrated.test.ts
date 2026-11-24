@@ -89,6 +89,7 @@ describe('全統合モードの保存互換', () => {
 
 import { isAsciiTerm } from '../../src/lib/cards';
 import { PASSPORT_INDEX_TERMS } from '../../src/data/passportIndexCards';
+import { PASSPORT_JP_INDEX_TERMS } from '../../src/data/passportJapaneseCards';
 
 describe('英字のみフィルタ（isAsciiTerm）', () => {
   it('英字略称・英名だけを通し、日本語を含む用語を除く', () => {
@@ -117,6 +118,15 @@ describe('パスポート公式テキスト索引（アルファベット欄）�
       for (const a of cd.aliases ?? []) have.add(a.toLowerCase());
     }
     for (const t of PASSPORT_INDEX_TERMS) expect(have.has(t.toLowerCase()), t).toBe(true);
+  });
+
+  it('索引の日本語見出し語がすべて単語帳の用語か別名に存在する', () => {
+    const have = new Set<string>();
+    for (const cd of publishedFlashcards.filter((x) => x.mode === 'passport')) {
+      have.add(cd.term.toLowerCase());
+      for (const a of cd.aliases ?? []) have.add(a.toLowerCase());
+    }
+    for (const t of PASSPORT_JP_INDEX_TERMS) expect(have.has(t.toLowerCase()), t).toBe(true);
   });
 
   it('パスポートの英字カードは49枚（索引追加で拡充）', () => {

@@ -9,17 +9,17 @@ test.beforeEach(async ({ page }) => {
 test('全統合モード：全モードの教材・問題・単語帳を横断できる', async ({ page }) => {
   await page.getByLabel('学習モード').getByRole('button', { name: '全統合', exact: true }).click();
   await expect(page.getByRole('heading', { name: /全統合 ダッシュボード/ })).toBeVisible();
-  // 演習は全954問が対象になる
+  // 演習は全998問が対象になる
   await page.getByLabel('主要メニュー').getByRole('button', { name: '演習' }).click();
-  await expect(page.getByText('対象は954問です。')).toBeVisible();
+  await expect(page.getByText('対象は998問です。')).toBeVisible();
   await page.getByRole('button', { name: 'この条件ではじめる' }).click();
   // 問題のメタ情報に出典モードが表示される
   await expect(page.locator('.meta').first()).toContainText(/G検定|生成AIパスポート|AI教養|ChatGPT・Codex/);
   await page.getByRole('button', { name: 'セッションを終了' }).click();
-  // 単語帳は全517枚が対象になる（2026-11-24 パスポート索引の英字カード28枚を追加）
+  // 単語帳は全696枚が対象になる（2026-11-24 パスポート索引の英字カード28枚＋日本語カード179枚を追加）
   await page.getByLabel('主要メニュー').getByRole('button', { name: '単語帳' }).click();
   await expect(page.getByRole('heading', { name: /単語帳（全統合）/ })).toBeVisible();
-  await expect(page.getByText(/学習済み 0／517枚/)).toBeVisible();
+  await expect(page.getByText(/学習済み 0／696枚/)).toBeVisible();
   // 教材一覧にはモード名付きで全モードの教材が並ぶ
   await page.getByLabel('主要メニュー').getByRole('button', { name: '教材' }).click();
   await expect(page.getByText(/ChatGPT・Codex：/).first()).toBeVisible();

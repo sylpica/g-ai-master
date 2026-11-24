@@ -46,14 +46,14 @@ export const PASSPORT_CARDS: Flashcard[] = [
     lessonId: 'les-p01', questionIds: ['q-p01-12'], sources: [SYLLABUS], difficulty: 2,
   }),
   c({
-    id: 'card-p01-05', mode: 'passport', syllabusId: 'p-01', conceptId: 'q-p01-13', term: 'CNN', aliases: ['畳み込みニューラルネットワーク'],
+    id: 'card-p01-05', mode: 'passport', syllabusId: 'p-01', conceptId: 'q-p01-13', term: 'CNN', aliases: ['畳み込みニューラルネットワーク', '畳み込み'],
     definition: '畳み込み演算を用いて画像などの局所的な特徴を抽出するニューラルネットワークで、コンピュータビジョンの発展の基盤となったモデル。',
-    reversePrompt: '畳み込み演算で画像の局所的な特徴を抽出する、画像認識で広く使われるネットワークは？',
+    reversePrompt: '画像の局所的な特徴を、フィルタを滑らせながら抽出する、画像認識で広く使われるネットワークは？',
     confusion: '時系列データの処理に適した構造はRNN系で、CNNは主に空間的な特徴の抽出に強い。',
     lessonId: 'les-p01', questionIds: ['q-p01-13'], sources: [SYLLABUS], difficulty: 2,
   }),
   c({
-    id: 'card-p01-06', mode: 'passport', syllabusId: 'p-01', conceptId: 'q-p01-15', term: 'Transformer',
+    id: 'card-p01-06', mode: 'passport', syllabusId: 'p-01', conceptId: 'q-p01-15', term: 'Transformer', aliases: ['トランスフォーマーモデル', 'エンコーダ'],
     definition: 'Attention（自己注意機構）を中心とするニューラルネットワークの構造。系列を並列に処理でき、現在の大規模言語モデルの基盤となっている。',
     reversePrompt: '自己注意機構を中心とし、系列の並列処理を可能にして大規模言語モデルの基盤となったネットワーク構造は？',
     confusion: 'RNNのような逐次処理ではなく、Attentionで系列全体の関係を捉える点が特徴。',
@@ -102,7 +102,7 @@ export const PASSPORT_CARDS: Flashcard[] = [
     lessonId: 'les-p02a', questionIds: ['q-p02-7'], sources: [SYLLABUS], difficulty: 1,
   }),
   c({
-    id: 'card-p02-03', mode: 'passport', syllabusId: 'p-02', conceptId: 'q-p02-8', term: '次トークン予測',
+    id: 'card-p02-03', mode: 'passport', syllabusId: 'p-02', conceptId: 'q-p02-8', term: '次トークン予測', aliases: ['次トークン予測タスク'],
     definition: 'これまでの文脈から、次に来るトークンの確率分布を予測する仕組み。LLMの事前学習と文章生成の基本動作となっている。',
     reversePrompt: '文脈から次に来る単語の確率を予測し続けることで文章を生成する、LLMの基本動作は？',
     confusion: '意味を理解して情報を検索しているのではなく、確率的な予測の積み重ねである点が、誤った出力が生じる背景にもなる。',
@@ -143,7 +143,7 @@ export const PASSPORT_CARDS: Flashcard[] = [
     lessonId: 'les-p02a', questionIds: ['q-p02-5'], sources: [SYLLABUS], difficulty: 2,
   }),
   c({
-    id: 'card-p02-09', mode: 'passport', syllabusId: 'p-02', conceptId: 'q-p02-4', term: 'ファインチューニング',
+    id: 'card-p02-09', mode: 'passport', syllabusId: 'p-02', conceptId: 'q-p02-4', term: 'ファインチューニング', aliases: ['教師ありファインチューニング', 'SFT'],
     definition: '学習済みモデルを、特定のタスクや領域のデータで追加学習させて用途に適応させる手法。教師ありファインチューニングや指示チューニングを含む。',
     reversePrompt: '学習済みモデルを特定用途のデータで追加学習させ、適応させる手法は？',
     confusion: '利用時に例を示すFew-Shotとは異なり、モデル自体のパラメータを更新する。',
@@ -165,7 +165,7 @@ export const PASSPORT_CARDS: Flashcard[] = [
     lessonId: 'les-p03', questionIds: ['q-p03-1'], sources: [SYLLABUS, GUGA], difficulty: 1,
   }),
   c({
-    id: 'card-p03-02', mode: 'passport', syllabusId: 'p-03', conceptId: 'q-p03-2', term: '自律型エージェント',
+    id: 'card-p03-02', mode: 'passport', syllabusId: 'p-03', conceptId: 'q-p03-2', term: '自律型エージェント', aliases: ['自律型AIエージェント'],
     definition: '人が手順を定めるワークフロー型に対し、目標を与えると計画や手順の判断もAI側が行うエージェントの形態。自律性が高い分、人間による監督や権限管理が重要になる。',
     reversePrompt: '手順を人が定める型と対比され、目標を与えると計画や進め方の判断もAIが行うエージェントの形態は？',
     confusion: '自律性のレベルは段階的なもので、完全な自律運用だけを指す言葉ではない。',
@@ -307,7 +307,7 @@ export const PASSPORT_CARDS: Flashcard[] = [
     lessonId: 'les-p05', questionIds: ['q-p05-1'], sources: [SYLLABUS, GUGA], difficulty: 1,
   }),
   c({
-    id: 'card-p05-02', mode: 'passport', syllabusId: 'p-05', conceptId: 'q-p05-2', term: 'Few-Shotプロンプティング', aliases: ['Few-Shot'],
+    id: 'card-p05-02', mode: 'passport', syllabusId: 'p-05', conceptId: 'q-p05-2', term: 'Few-Shotプロンプティング', aliases: ['Few-Shot', 'フューショットプロンプティング'],
     definition: '入出力の例を少数示してから、本番のタスクを実行させるプロンプティングの手法。例を示さず指示だけで解かせる場合はZero-Shotと呼ばれる。',
     reversePrompt: '少数の入出力例を示してから本番のタスクを行わせるプロンプティング手法は？',
     confusion: '例に誤りや偏りがあると、そのまま出力に引き継がれる。モデルの追加学習（ファインチューニング）とは異なる。',

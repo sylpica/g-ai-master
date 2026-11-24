@@ -99,7 +99,7 @@ export const PASSPORT_MORE_CARDS: Flashcard[] = [
     lessonId: 'les-p02a', questionIds: ['q-p02-109'], sources: [GUGA_OUTLINE, GUGA_SYLLABUS], difficulty: 3,
   }),
   c({
-    id: 'card-p02-62', mode: 'passport', syllabusId: 'p-02', conceptId: 'q-p02-18', term: 'オンプレミス',
+    id: 'card-p02-62', mode: 'passport', syllabusId: 'p-02', conceptId: 'q-p02-18', term: 'オンプレミス', aliases: ['オンプレミスLLM', 'ローカルLLM'],
     definition: '提供事業者のクラウド基盤ではなく、自組織の管理下にある環境でシステムを動かす利用形態。データを自組織の管理下に置きたい場合に検討されるが、運用には計算資源と体制が必要になる。',
     reversePrompt: '提供事業者の基盤ではなく、自組織の管理下にある環境でシステムを動かす利用形態は？',
     confusion: 'モデルの重みが公開されライセンスのもとで利用できるオープンソース（オープンウェイト）とは別の観点で、こちらは動かす場所と管理の所在を指す。',
@@ -158,7 +158,7 @@ export const PASSPORT_MORE_CARDS: Flashcard[] = [
   }),
   // ===== p-04 生成AIのリスク予防・AI倫理・ガバナンス =====
   c({
-    id: 'card-p04-57', mode: 'passport', syllabusId: 'p-04', conceptId: 'q-p04-9', term: '個人情報',
+    id: 'card-p04-57', mode: 'passport', syllabusId: 'p-04', conceptId: 'q-p04-9', term: '個人情報', aliases: ['個人情報保護法'],
     definition: '個人情報保護法で定義される法律上の概念で、生存する個人に関する情報のうち、氏名や個人識別符号などによって特定の個人を識別できるものを指す。個人データの利用は利用目的の範囲内で行い、原則として本人の同意なく第三者に提供することはできない。',
     reversePrompt: '生存する個人に関する情報で、氏名などによって特定の個人を識別できるものを指す、法律上の概念は？',
     confusion: '私生活上の事柄をみだりに公開されない権利であるプライバシーや、守秘の対象となる情報全般を指す秘密保持とは、重なる部分はあるが同じ概念ではない。',

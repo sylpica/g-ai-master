@@ -43,6 +43,7 @@ import { PASSPORT_QUESTIONS_1 } from './passportQuestions1';
 import { PASSPORT_QUESTIONS_2 } from './passportQuestions2';
 import { PASSPORT_EXTRA_QUESTIONS_1 } from './passportExtraQuestions1';
 import { PASSPORT_EXTRA_QUESTIONS_2 } from './passportExtraQuestions2';
+import { PASSPORT_JP_QUESTIONS } from './passportJapaneseQuestions';
 import { MORE_QUESTIONS } from './moreQuestions';
 
 const RAW_QUESTIONS: Question[] = [
@@ -1385,7 +1386,7 @@ const ALL_RAW_QUESTIONS: Question[] = [
   ...RAW_QUESTIONS,
   ...G_EXTRA_QUESTIONS_1, ...G_EXTRA_QUESTIONS_2, ...G_EXTRA_QUESTIONS_3,
   ...PASSPORT_QUESTIONS_1, ...PASSPORT_QUESTIONS_2,
-  ...PASSPORT_EXTRA_QUESTIONS_1, ...PASSPORT_EXTRA_QUESTIONS_2, ...CHATGPT_QUESTIONS,
+  ...PASSPORT_EXTRA_QUESTIONS_1, ...PASSPORT_EXTRA_QUESTIONS_2, ...PASSPORT_JP_QUESTIONS, ...CHATGPT_QUESTIONS,
   ...MORE_QUESTIONS,
 ];
 

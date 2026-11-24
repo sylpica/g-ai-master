@@ -119,7 +119,7 @@ export const PASSPORT_EXTRA_CARDS: Flashcard[] = [
     lessonId: 'les-p02b', questionIds: ['q-p02-19'], sources: [SYLLABUS], difficulty: 2,
   }),
   c({
-    id: 'card-p02-56', mode: 'passport', syllabusId: 'p-02', conceptId: 'q-p02-5', term: 'マルチモーダル',
+    id: 'card-p02-56', mode: 'passport', syllabusId: 'p-02', conceptId: 'q-p02-5', term: 'マルチモーダル', aliases: ['マルチモーダルモデル'],
     definition: 'テキスト・画像・音声など、異なる種類の情報（モダリティ）を横断して扱える性質やモデルを指す。基盤モデルの発展の方向の一つ。',
     reversePrompt: 'テキスト・画像・音声など複数の種類の情報を横断して扱える性質を指す言葉は？',
     detail: '画像の内容を説明する、音声を文字起こしして要約する、といったモダリティをまたぐ処理が可能になる。扱える範囲はモデルごとに異なる。',
@@ -156,7 +156,7 @@ export const PASSPORT_EXTRA_CARDS: Flashcard[] = [
     lessonId: 'les-p03b', questionIds: ['q-p03-7'], sources: [SYLLABUS], difficulty: 3,
   }),
   c({
-    id: 'card-p03-54', mode: 'passport', syllabusId: 'p-03', conceptId: 'q-p03-8', term: 'タスク分解',
+    id: 'card-p03-54', mode: 'passport', syllabusId: 'p-03', conceptId: 'q-p03-8', term: 'タスク分解', aliases: ['タスク分解と計画'],
     definition: '大きなタスクを、実行可能な小さなサブタスクに分けて計画する考え方。AIエージェントが複雑な業務を手順に沿って進めるための基礎になる。',
     reversePrompt: '大きな仕事を実行可能な小さな単位へ分けて計画することを指す言葉は？',
     detail: '分解することで、各ステップで使うツールや必要な権限、人間の確認を置く場所を具体的に設計できる。分解の質がエージェント全体の成功率を左右する。',
@@ -239,7 +239,7 @@ export const PASSPORT_EXTRA_CARDS: Flashcard[] = [
   }),
   // ===== p-05 実践と活用事例（深掘り） =====
   c({
-    id: 'card-p05-51', mode: 'passport', syllabusId: 'p-05', conceptId: 'q-p05-1', term: 'Zero-Shotプロンプティング', aliases: ['ゼロショット'],
+    id: 'card-p05-51', mode: 'passport', syllabusId: 'p-05', conceptId: 'q-p05-1', term: 'Zero-Shotプロンプティング', aliases: ['ゼロショット', 'ゼロショットプロンプティング'],
     definition: '例を示さずに、指示だけでタスクを行わせるプロンプトの書き方。例をいくつか示すFew-Shotプロンプティングと対比される。',
     reversePrompt: '例を一切示さず、指示だけでタスクを行わせるプロンプトの書き方は？',
     detail: '単純なタスクでは指示だけで十分なことが多い一方、形式や基準をそろえたい場合は例を示すFew-Shotの方が安定しやすい。',

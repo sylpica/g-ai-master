@@ -15,7 +15,7 @@ const c = (x: C): Flashcard => ({ ...x, verifiedAt: V_AT });
 export const PASSPORT_INDEX_CARDS: Flashcard[] = [
   // ===== p-01 AIの基礎と歴史 =====
   c({
-    id: 'card-p01-70', mode: 'passport', syllabusId: 'p-01', conceptId: 'q-p01-1', term: 'AI',
+    id: 'card-p01-70', mode: 'passport', syllabusId: 'p-01', conceptId: 'q-p01-1', term: 'AI', aliases: ['人工知能'],
     definition: '人間の知的な振る舞い（学習・推論・判断・言語理解など）をコンピュータで実現しようとする技術の総称。ルールベースのシステムから機械学習・ディープラーニングまで幅広く含み、生成AIはその一分野にあたる。',
     reversePrompt: '学習・推論・判断・言語理解といった人間の知的な振る舞いをコンピュータで実現しようとする技術の総称は？',
     example: '画像認識、音声認識、推薦、対話など、身の回りの多くのサービスで使われている基盤技術。',
@@ -23,7 +23,7 @@ export const PASSPORT_INDEX_CARDS: Flashcard[] = [
     lessonId: 'les-p01', questionIds: ['q-p01-1'], sources: [GUGA_OUTLINE, GUGA_SYLLABUS], difficulty: 1,
   }),
   c({
-    id: 'card-p01-71', mode: 'passport', syllabusId: 'p-01', conceptId: 'q-p01-17', term: 'Generator',
+    id: 'card-p01-71', mode: 'passport', syllabusId: 'p-01', conceptId: 'q-p01-17', term: 'Generator', aliases: ['生成器'],
     definition: 'GAN（敵対的生成ネットワーク）で、本物らしいデータを生成する側のネットワーク。もう一方の識別器（Discriminator）に「本物」と判定されるよう学習し、画像などの新しいデータを生み出す役割を担う。',
     reversePrompt: '敵対的生成ネットワークで、識別器をだますような本物らしいデータを生み出す側のネットワークは？',
     example: '実在しない人物の顔写真のような画像を新たに作り出す生成モデル。',
@@ -109,9 +109,9 @@ export const PASSPORT_INDEX_CARDS: Flashcard[] = [
   }),
   c({
     id: 'card-p02-79', mode: 'passport', syllabusId: 'p-02', conceptId: 'q-p05-110', term: 'TTS',
-    aliases: ['Text-to-Speech', '音声合成'],
+    aliases: ['Text-to-Speech', '音声合成', 'ニューラルTTS', 'ナレーション'],
     definition: 'テキストを人工の音声に変換する技術。読み上げ、ナレーション、音声アシスタントなどに使われる。特定の人の声を再現する音声クローンもこの技術の応用で、悪用（なりすまし）への対策も課題になっている。',
-    reversePrompt: '入力された文章を人工の音声に変換し、読み上げやナレーションに使う技術の略称は？',
+    reversePrompt: '入力された文章を人工の音声に変換し、読み上げなどに使う技術の略称は？',
     example: 'ニュース原稿の自動読み上げ、視覚に障がいのある人向けの読み上げ支援。',
     confusion: '音声を文字に変える文字起こし（音声認識）とは変換の向きが逆。',
     lessonId: 'les-p02b', questionIds: ['q-p05-110'], sources: [GUGA_OUTLINE, GUGA_SYLLABUS], difficulty: 1,
@@ -144,7 +144,7 @@ export const PASSPORT_INDEX_CARDS: Flashcard[] = [
     lessonId: 'les-p03', questionIds: ['q-p03-20'], sources: [GUGA_OUTLINE, GUGA_SYLLABUS], difficulty: 2,
   }),
   c({
-    id: 'card-p03-72', mode: 'passport', syllabusId: 'p-03', conceptId: 'q-p03-7', term: 'Agency',
+    id: 'card-p03-72', mode: 'passport', syllabusId: 'p-03', conceptId: 'q-p03-7', term: 'Agency', aliases: ['主体性'],
     definition: 'AIエージェントが、与えられた目標に向けて自ら計画を立て、手段を選んで行動する主体性のこと。単に指示へ応答するだけでなく、必要な手順を判断して実行できる度合いを指す。自由度が高いほど誤った判断の連鎖リスクも増える。',
     reversePrompt: 'エージェントが目標に向けて自ら計画し、手段を選んで行動する性質や度合いを指す英単語は？',
     example: '調べものの手順を自分で組み立て、検索と要約を繰り返して報告書を仕上げるエージェントの振る舞い。',
@@ -161,7 +161,7 @@ export const PASSPORT_INDEX_CARDS: Flashcard[] = [
     lessonId: 'les-p03', questionIds: [], sources: [GUGA_OUTLINE, GUGA_SYLLABUS], difficulty: 3,
   }),
   c({
-    id: 'card-p03-74', mode: 'passport', syllabusId: 'p-03', conceptId: 'q-p03-7', term: 'Judgment',
+    id: 'card-p03-74', mode: 'passport', syllabusId: 'p-03', conceptId: 'q-p03-7', term: 'Judgment', aliases: ['判断'],
     definition: '状況を評価し、複数の選択肢から適切な行動を選び取る判断の働き。AIエージェントの能力の要素の一つで、検索方法の選択や、処理を続けるか止めるかの決定などに現れる。重要な場面では人間の判断（承認）を挟む設計が求められる。',
     reversePrompt: '状況を評価し、複数の選択肢から適切な行動を選び取る働きを指す英単語は？',
     example: '根拠が不足していると見て追加で調べ直す、影響の大きい操作の前に人間の承認を求める、といった選び取り。',
